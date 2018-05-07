@@ -24,7 +24,9 @@ contract KyberGateway is RpSafeMath {
         bytes cosignerData,
         bytes oracleData
     ) public payable returns (bool) {
-        uint256 targetAmount = kyber.convertRate(engine.getAmount(idLoan), kyber.rateRE());
+        uint256 rate;
+        (rate, ) = kyber.getExpectedRate(RCN, ETH, 0);
+        uint256 targetAmount = kyber.convertRate(engine.getAmount(idLoan), rate);
 
         require(msg.value >= targetAmount);
 
