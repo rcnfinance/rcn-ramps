@@ -18,7 +18,7 @@ contract TestWallet is RpSafeMath {
         kyberGate = _kyberGate;
     }
 
-    function () public payable {
+    function() public payable {
         deposit();
     }
 
@@ -40,11 +40,10 @@ contract TestWallet is RpSafeMath {
         return totalTokens;
     }
 
-    function executeLend(KyberMock _kyberMock, NanoLoanEngine _rcnEngine, uint256 _idLoan, Cosigner _cosigner,
+    function executeLend(uint256 _targetAmountETH, KyberMock _kyberMock, NanoLoanEngine _rcnEngine, uint256 _idLoan, Cosigner _cosigner,
         bytes _cosignerData, bytes _oracleData) public {
-          uint256 targetAmount = _kyberMock.convertRate(_rcnEngine.getAmount(_idLoan), _kyberMock.rateRE());
-          require(getContractBalance() >= targetAmount, "executeLend, Insufficient funds");
+          require(getContractBalance() >= _targetAmountETH, "executeLend, Insufficient funds");
 
-          kyberGate.lend.value(targetAmount)(_kyberMock, _rcnEngine, _idLoan, _cosigner, _cosignerData, _oracleData);
+          kyberGate.lend.value(_targetAmountETH)(_kyberMock, _rcnEngine, _idLoan, _cosigner, _cosignerData, _oracleData);
     }
 }
