@@ -5,7 +5,7 @@ var KyberGateway = artifacts.require("./KyberGateway.sol");
 var TestWallet = artifacts.require("./utils/test/TestWallet.sol");
 
 contract('KyberGateway', function(accounts) {
-      let ETH_TOKEN_ADDRESS = "0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    let ETH_TOKEN_ADDRESS = "0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
     let rcnEngine;
     let kyber;
     let mortgageManager;
@@ -68,7 +68,7 @@ contract('KyberGateway', function(accounts) {
         // Deposit ETH on wallet from account 5
         await wallet.deposit({value: 1*10**18, from:accounts[5]});
         // Check the initial ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 1*10**18, "The balance in ETH of wallet should be 7");
+        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 1*10**18, "The balance in ETH of wallet should be 1");
         assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0, "The balance in ETH of kyber should be 0");
         // Create tokens y rates
         await rcn.createTokens(kyber.address, 10002*10**18);
