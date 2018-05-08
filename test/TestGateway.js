@@ -55,6 +55,24 @@ contract('KyberGateway', function(accounts) {
         assert.equal(await rcnEngine.ownerOf(loanId), accounts[2], "The owner of the loan should be the caller account")
     });
 
+    it("Should transfer the exceeding ETH amount", async() => {
+        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0, web3.toWei(6000), 1, 1, 86400, 0, 10**30, "", {from:accounts[2]})
+        let loanId = loanReceipt["logs"][0]["args"]["_index"];
+
+        await rcn.createTokens(kyber.address, web3.toWei(10000));
+        await kyber.setRateER(web3.toWei(4000));
+        await kyber.setRateRE(web3.toWei(0.0002));
+
+        let prevBalance = await web3.eth.getBalance(accounts[2]);
+        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], { value: web3.toWei(12), from: accounts[2]});
+        let diffExpected = prevBalance - await web3.eth.getBalance(accounts[2]);
+
+        assert.equal(await web3.eth.getBalance(kyberGate.address), 0, "Should not remain gas in kyber gateway");
+        assert.equal(await rcn.balanceOf(kyberGate.address), 0, "Should not remain any tokens in gateway");
+        let amountInETH = web3.toWei(1.5);
+        assert.isBelow(Math.abs(diffExpected - amountInETH), web3.toWei(0.03), "Account balance should only have lost 1.5 ETH");
+    });
+
     it("Test Kyber lend", async() => {
         let loanAmountRCN = web3.toWei(2000);
 
