@@ -59,6 +59,9 @@ contract('KyberGateway', function(accounts) {
         assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 1*10**18, "The balance of kyber should be 1 RCN");
         assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 2000*10**18, "The balance of acc2(borrower) should be 2000 RCN");
         assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
+        // check the lender of the loan
+        let loanOwner = await rcnEngine.ownerOf(0);
+        assert.equal(loanOwner, accounts[3], "The lender should be account 3");
     });
 
     it("Test Kyber large amount loan", async() => {
