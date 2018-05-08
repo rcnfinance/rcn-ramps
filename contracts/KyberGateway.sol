@@ -39,14 +39,13 @@ contract KyberGateway is RpSafeMath {
         bytes _oracleData
     ) public payable returns (bool) {
         uint256 loanAmount = _rcnEngine.getAmount(_index);
-        uint256 rate;
-        (rate, ) = _kyber.getExpectedRate(RCN, ETH, loanAmount);
-        uint256 targetAmount = _kyber.convertRate(loanAmount, rate);
+        uint256 rateER;
+        (rateER, ) = _kyber.getExpectedRate(ETH, RCN, loanAmount);
+        rateER = 10**36 / rateER;
 
-        require(msg.value >= targetAmount, "Insufficient funds");
-
-        uint256 returnAmount = safeSubtract(msg.value, targetAmount);
-        uint256 totalTokens = _kyber.trade.value(targetAmount)(ETH, targetAmount, RCN, this, 10 ** 30, 0, this);
+        uint256 targetAmountETH = _kyber.convertRate(loanAmount, rateER);
+        uint256 returnAmount = safeSubtract(msg.value, targetAmountETH);
+        uint256 totalTokens = _kyber.trade.value(targetAmountETH)(ETH, targetAmountETH, RCN, this, 10 ** 30, 0, this);
 
         RCN.approve(address(_rcnEngine), totalTokens);
 
