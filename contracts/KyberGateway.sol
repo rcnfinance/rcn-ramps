@@ -24,19 +24,24 @@ contract KyberGateway is RpSafeMath {
         bytes cosignerData,
         bytes oracleData
     ) public payable returns (bool) {
+        uint256 loanAmount = engine.getAmount(idLoan);
         uint256 rate;
-        (rate, ) = kyber.getExpectedRate(RCN, ETH, 0);
-        uint256 targetAmount = kyber.convertRate(engine.getAmount(idLoan), rate);
+        (rate, ) = kyber.getExpectedRate(RCN, ETH, loanAmount);
+        uint256 targetAmount = kyber.convertRate(loanAmount, rate);
 
-        require(msg.value >= targetAmount);
+        require(msg.value >= targetAmount, "Insufficient funds");
 
         uint256 returnAmount = safeSubtract(msg.value, targetAmount);
         uint256 totalTokens = kyber.trade.value(targetAmount)(ETH, targetAmount, RCN, this, 10 ** 30, 0, this);
 
         RCN.approve(address(engine), totalTokens);
 
-        engine.lend(idLoan, oracleData, cosigner, cosignerData);
+        require(engine.lend(idLoan, oracleData, cosigner, cosignerData), "fail lend");
+
+        require(engine.transfer(msg.sender, idLoan), "fail transfer");
 
         msg.sender.transfer(returnAmount);// if the sender is a contract, the contract needs a fallback function payable
+
+        return true;
     }
 }
