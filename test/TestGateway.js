@@ -42,13 +42,17 @@ contract('KyberGateway', function(accounts) {
         wallet = await TestWallet.new(kyber.address, kyberGate.address);
     });
 
+    function getETHBalance(address) {
+        return web3.eth.getBalance(address).toNumber();
+    };
+
     it("Test trade ETH/RCN through the wallet", async() => {
         let amountOnETH = 0.2*10**18;
         // Deposit ETH on wallet from account 5
         await wallet.deposit({value: 0.5*10**18, from:accounts[5]});
         // Check the initial ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 0.5*10**18, "The balance in ETH of wallet should be 0.5");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0, "The balance in ETH of kyber should be 0");
+        assert.equal(getETHBalance(wallet.address), 0.5*10**18, "The balance of wallet should be 0.5 ETH");
+        assert.equal(getETHBalance(kyber.address), 0, "The balance of kyber should be 0 ETH");
         // Create tokens y rates
         await rcn.createTokens(kyber.address, 11254*10**18);
         await kyber.setRateRE(0.0002*10**18);
@@ -56,11 +60,11 @@ contract('KyberGateway', function(accounts) {
         // Trade TEH for RCN
         await wallet.executeTrade(ETH_TOKEN_ADDRESS, amountOnETH, rcn.address, {from:accounts[5]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 0.3*10**18, "The balance in ETH of wallet should be 5");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0.2*10**18, "The balance in ETH of kyber should be 2");
+        assert.equal(getETHBalance(wallet.address), 0.3*10**18, "The balance of wallet should be 5 ETH ");
+        assert.equal(getETHBalance(kyber.address), 0.2*10**18, "The balance of kyber should be 2 ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 10254*10**18, "The balance in RCN of kyber should be 10,254");
-        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 1000*10**18, "The balance in RCN of wallet should be 1,000");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 10254*10**18, "The balance of kyber should be 10,254 RCN");
+        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 1000*10**18, "The balance of wallet should be 1,000 RCN");
     });
 
     it("Test lend ETH/RCN through the wallet", async() => {
@@ -68,8 +72,8 @@ contract('KyberGateway', function(accounts) {
         // Deposit ETH on wallet from account 5
         await wallet.deposit({value: 1*10**18, from:accounts[5]});
         // Check the initial ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 1*10**18, "The balance in ETH of wallet should be 1");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0, "The balance in ETH of kyber should be 0");
+        assert.equal(getETHBalance(wallet.address), 1*10**18, "The balance of wallet should be 1 ETH");
+        assert.equal(getETHBalance(kyber.address), 0, "The balance of kyber should be 0 ETH");
         // Create tokens y rates
         await rcn.createTokens(kyber.address, 10002*10**18);
         await kyber.setRateRE(0.0002*10**18);
@@ -83,13 +87,13 @@ contract('KyberGateway', function(accounts) {
         let targetAmountETH = (await kyber.convertRate(loanAmount, rateRE)).toNumber();
         await wallet.executeLend(targetAmountETH, kyber.address, rcnEngine.address, 0, 0x0, [], [], {from:accounts[5]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 0.6*10**18, "The balance in ETH of wallet should be 0.6");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0.4*10**18, "The balance in ETH of kyber should be 0.4");
+        assert.equal(getETHBalance(wallet.address), 0.6*10**18, "The balance of wallet should be 0.6 ETH");
+        assert.equal(getETHBalance(kyber.address), 0.4*10**18, "The balance of kyber should be 0.4 ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 8002*10**18, "The balance in RCN of kyber should be 8,002");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 2000*10**18, "The balance in RCN of Acc 2 should be 2,000");
-        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 0, "The balance in RCN of wallet should be 0");
-        assert.equal((await rcn.balanceOf(accounts[5])).toNumber(), 0, "The balance in RCN of Acc 5 should be 0");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 8002*10**18, "The balance of kyber should be 8,002 RCN");
+        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 2000*10**18, "The balance of Acc 2 should be 2,000 RCN");
+        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 0, "The balance of wallet should be 0 RCN");
+        assert.equal((await rcn.balanceOf(accounts[5])).toNumber(), 0, "The balance of Acc 5 should be 0 RCN");
     });
 
     it("Test lend ETH/RCN through the wallet in wei level", async() => {
@@ -97,8 +101,8 @@ contract('KyberGateway', function(accounts) {
         // Deposit ETH on wallet from account 5
         await wallet.deposit({value: 5, from:accounts[5]});
         // Check the initial ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 5, "The balance in ETH of wallet should be 5 wei");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0, "The balance in ETH of kyber should be 0 wei");
+        assert.equal(getETHBalance(wallet.address), 5, "The balance of wallet should be 5 wei ETH");
+        assert.equal(getETHBalance(kyber.address), 0, "The balance of kyber should be 0 wei ETH");
         // Create tokens y rates
         await rcn.createTokens(kyber.address, 25000);
         await kyber.setRateRE(0.0002*10**18);
@@ -112,13 +116,13 @@ contract('KyberGateway', function(accounts) {
         let targetAmountETH = (await kyber.convertRate(loanAmount, rateRE)).toNumber();
         await wallet.executeLend(targetAmountETH, kyber.address, rcnEngine.address, 0, 0x0, [], [], {from:accounts[5]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(wallet.address).toNumber(), 3, "The balance in ETH of wallet should be 3 wei");
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 2, "The balance in ETH of kyber should be 2 wei");
+        assert.equal(getETHBalance(wallet.address), 3, "The balance of wallet should be 3 wei ETH");
+        assert.equal(getETHBalance(kyber.address), 2, "The balance of kyber should be 2 wei ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 15000, "The balance in RCN of kyber should be 15,000 wei");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 10000, "The balance in RCN of Acc 2 should be 10,000 wei");
-        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 0, "The balance in RCN of wallet should be 0");
-        assert.equal((await rcn.balanceOf(accounts[5])).toNumber(), 0, "The balance in RCN of Acc 5 should be 0");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 15000, "The balance of kyber should be 15,000 RCN wei");
+        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 10000, "The balance of Acc 2 should be 10,000 RCN wei");
+        assert.equal((await rcn.balanceOf(wallet.address)).toNumber(), 0, "The balance of wallet should be 0 RCN");
+        assert.equal((await rcn.balanceOf(accounts[5])).toNumber(), 0, "The balance of Acc 5 should be 0 RCN");
     });
 
     it("Test Kyber lend", async() => {
@@ -133,11 +137,11 @@ contract('KyberGateway', function(accounts) {
         // Trade ETH to RCN and Lend
         await kyberGate.lend(kyber.address, rcnEngine.address, 0, 0x0, [], [], {value: 0.4*10**18, from:accounts[3]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 0.4*10**18, "The balance in ETH of kyber should be 0.4");
+        assert.equal(getETHBalance(kyber.address), 0.4*10**18, "The balance of kyber should be 0.4 ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 1*10**18, "The balance in RCN of kyber should be 1");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 2000*10**18, "The balance in RCN of acc2(borrower) should be 2000");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance in RCN of acc3(lender) should be 0");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 1*10**18, "The balance of kyber should be 1 RCN");
+        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 2000*10**18, "The balance of acc2(borrower) should be 2000 RCN");
+        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
     });
 
     it("Test Kyber large amount loan", async() => {
@@ -152,11 +156,11 @@ contract('KyberGateway', function(accounts) {
         // Trade ETH to RCN and Lend
         await kyberGate.lend(kyber.address, rcnEngine.address, 0, 0x0, [], [], {value: 5*10**18, from:accounts[3]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 4.99999*10**18, "The balance in ETH of kyber should be 4.99999");
+        assert.equal(getETHBalance(kyber.address), 4.99999*10**18, "The balance of kyber should be 4.99999 ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 1*10**18, "The balance in RCN of kyber should be 1");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 499999*10**18, "The balance in RCN of acc2(borrower) should be 499999");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance in RCN of acc3(lender) should be 0");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 1*10**18, "The balance of kyber should be 1 RCN");
+        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 499999*10**18, "The balance of acc2(borrower) should be 499999 RCN");
+        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
     });
 
     it("Test Kyber small amount loan", async() => {
@@ -171,10 +175,10 @@ contract('KyberGateway', function(accounts) {
         // Trade ETH to RCN and Lend
         await kyberGate.lend(kyber.address, rcnEngine.address, 0, 0x0, [], [], {value: 0.0005*10**18, from:accounts[3]});
         // Check the final ETH balance
-        assert.equal(web3.eth.getBalance(kyber.address).toNumber(), 4*10**9, "The balance in ETH of kyber should be 0.000000004");
+        assert.equal(getETHBalance(kyber.address), 4*10**9, "The balance of kyber should be 0.000000004 ETH");
         // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 0.00001*10**18, "The balance in RCN of kyber should be 0.00001");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 0.0004*10**18, "The balance in RCN of acc2(borrower) should be 0.0004");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance in RCN of acc3(lender) should be 0");
+        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), 0.00001*10**18, "The balance of kyber should be 0.00001 RCN");
+        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), 0.0004*10**18, "The balance of acc2(borrower) should be 0.0004 RCN");
+        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
     });
 })
