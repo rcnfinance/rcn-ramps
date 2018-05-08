@@ -42,19 +42,32 @@ contract('KyberGateway', function(accounts) {
         return web3.eth.getBalance(address).toNumber();
     };
 
+    it("Should transfer the ownership of the loan", async() => {
+        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0,  web3.toWei(10), 1, 1, 86400, 0, 10**30, "", {from:accounts[2]})
+        let loanId = loanReceipt["logs"][0]["args"]["_index"];
+
+        await rcn.createTokens(kyber.address, web3.toWei(100))
+        await kyber.setRateRE(web3.toWei(0.0002))
+        await kyber.setRateER(web3.toWei(4000))
+
+        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], { value: web3.toWei(20), from: accounts[2]})
+
+        assert.equal(await rcnEngine.ownerOf(loanId), accounts[2], "The owner of the loan should be the caller account")
+    });
+
     it("Test Kyber lend", async() => {
         let loanAmountRCN = web3.toWei(2000);
 
         await rcn.createTokens(kyber.address, web3.toWei(2001));
         await kyber.setRateRE(web3.toWei(0.0002));
-        await kyber.setRateER(web3.toWei(5000));
+        await kyber.setRateER(web3.toWei(4000));
         // Request a loan for the accounts[2] it should be index 0
         await rcnEngine.createLoan(0x0, accounts[2], 0x0, loanAmountRCN,
             100000000, 100000000, 86400, 0, 10**30, "Test kyberGateway", {from:accounts[2]});
         // Trade ETH to RCN and Lend
-        await kyberGate.lend(kyber.address, rcnEngine.address, 0, 0x0, [], [], {value: web3.toWei(0.4), from:accounts[3]});
+        await kyberGate.lend(kyber.address, rcnEngine.address, 0, 0x0, [], [], {value: web3.toWei(0.5), from:accounts[3]});
         // Check the final ETH balance
-        assert.equal(getETHBalance(kyber.address), web3.toWei(0.4), "The balance of kyber should be 0.4 ETH");
+        assert.equal(getETHBalance(kyber.address), web3.toWei(0.5), "The balance of kyber should be 0.5 ETH");
         // Check the final RCN balance
         assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), web3.toWei(1), "The balance of kyber should be 1 RCN");
         assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), web3.toWei(2000), "The balance of acc2(borrower) should be 2000 RCN");
