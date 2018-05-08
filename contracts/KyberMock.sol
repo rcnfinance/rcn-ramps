@@ -32,7 +32,7 @@ contract KyberMock is KyberNetwork, Ownable {
     function trade( Token src, uint srcAmount, Token dest, address destAddress, uint maxDestAmount,
       uint minConversionRate, address) public payable returns(uint) {
         uint256 rate;
-        (rate, ) = getExpectedRate(src, dest, 0);
+        (rate, ) = getExpectedRate(src, dest, srcAmount);
         require(rate > minConversionRate);
 
         if (src == ETH_TOKEN_ADDRESS) {
