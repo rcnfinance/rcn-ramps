@@ -27,6 +27,8 @@ contract KyberGateway is RpSafeMath {
         @param _cosignerData Data required by the cosigner to process the request.
         @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
+        @param _changeInETH if true repurchase ETH return the change in ETH, if false return in RCN
+        @param _changeMinAmount minimum repurchase change amount
 
         @return true if the trade and lend was done successfully
     */
@@ -36,7 +38,9 @@ contract KyberGateway is RpSafeMath {
         uint _index,
         Cosigner _cosigner,
         bytes _cosignerData,
-        bytes _oracleData
+        bytes _oracleData,
+        bool _changeInETH,
+        uint256 _changeMinAmount
     ) public payable returns (bool) {
         uint256 loanAmount = _rcnEngine.getAmount(_index);
         uint256 rateER;
@@ -53,7 +57,16 @@ contract KyberGateway is RpSafeMath {
 
         require(_rcnEngine.transfer(msg.sender, _index), "fail transfer");
 
-        msg.sender.transfer(returnAmount);// if the sender is a contract, the contract needs a fallback function payable
+        // return change
+        uint256 change = totalTokens - loanAmount;
+        if(_changeInETH && change > _changeMinAmount){
+            change = _kyber.trade(RCN, change, ETH, this, 10 ** 30, 0, this);
+        }else{
+            RCN.transferFrom(address(this), msg.sender, change);
+            change = 0;
+        }
+
+        msg.sender.transfer(returnAmount + change);
 
         return true;
     }
