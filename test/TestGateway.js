@@ -2,13 +2,15 @@ var TestToken = artifacts.require("./utils/test/TestToken.sol");
 var NanoLoanEngine = artifacts.require("./utils/test/ripiocredit/NanoLoanEngine.sol");
 var KyberMock = artifacts.require("./KyberMock.sol");
 var KyberGateway = artifacts.require("./KyberGateway.sol");
+var TestOracle = artifacts.require("./TestOracle.sol");
 
 contract('KyberGateway', function(accounts) {
     let ETH_TOKEN_ADDRESS = "0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
     let rcnEngine;
+    let rcn;
+    let oracle;
     let kyber;
     let kyberGate;
-    let rcn;
 
     async function assertThrow(promise) {
         try {
@@ -32,6 +34,8 @@ contract('KyberGateway', function(accounts) {
         rcn = await TestToken.new("Ripio Credit Network", "RCN", 18, "1.1", 4000);
         // Deploy RCN Engine
         rcnEngine = await NanoLoanEngine.new(rcn.address);
+        // Deploy Oracle and add currencies
+        oracle = await TestOracle.new();
 
         // Deploy Kyber network and fund it
         kyber = await KyberMock.new(rcn.address);

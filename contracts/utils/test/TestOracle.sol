@@ -11,8 +11,6 @@ contract TestOracle is Oracle {
 
     mapping (bytes32 => Currency) symbolToCurrency;
 
-    event DEBUG(bytes32 symbol, uint256 rate, uint256 decimals);
-
     constructor() public {
         addCurrency(keccak256("USD"), 14, 2);
         addCurrency(keccak256("ARG"), 308, 2);
@@ -37,8 +35,6 @@ contract TestOracle is Oracle {
 
     function getRate(bytes32 _symbol, bytes ) public returns (uint256 rate, uint256 decimals) {
         Currency storage currency = symbolToCurrency[_symbol];
-
-        emit DEBUG(_symbol, currency.rate, currency.decimals);
 
         return (currency.rate, currency.decimals);
     }
