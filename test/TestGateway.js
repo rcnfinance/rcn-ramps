@@ -1,17 +1,92 @@
-var TestToken = artifacts.require("./utils/test/TestToken.sol");
-var NanoLoanEngine = artifacts.require("./utils/test/ripiocredit/NanoLoanEngine.sol");
-var KyberMock = artifacts.require("./KyberMock.sol");
-var KyberGateway = artifacts.require("./KyberGateway.sol");
-var TestOracle = artifacts.require("./TestOracle.sol");
+let ConversionRates = artifacts.require("./ConversionRates.sol");
+let TestToken = artifacts.require("./utils/test/TestToken.sol");
+let Reserve = artifacts.require("./KyberReserve.sol");
+let Network = artifacts.require("./KyberNetwork.sol");
+let WhiteList = artifacts.require("./WhiteList.sol");
+let ExpectedRate = artifacts.require("./ExpectedRate.sol");
+let FeeBurner = artifacts.require("./FeeBurner.sol");
+let KyberGateway = artifacts.require("./KyberGateway.sol");
+let NanoLoanEngine = artifacts.require("./NanoLoanEngine.sol");
+let TestOracle = artifacts.require("./TestOracle.sol");
+
+let Helper = require("./helper.js");
+let BigNumber = require('bignumber.js');
+
+//global variables
+//////////////////
+let precisionUnits = (new BigNumber(10).pow(18));
+let ethAddress = '0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+const gasPrice = web3.toWei(1);
+let negligibleRateDiff = 15;
+
+//permission groups
+let admin;
+let operator;
+let alerter;
+let sanityRates;
+let user1;
+let user2;
+
+//contracts
+let pricing;
+let reserve;
+let whiteList;
+let expectedRate;
+let network;
+let feeBurner;
+let kyberGate;
+let rcnEngine;
+let oracle;
+
+//block data
+let priceUpdateBlock;
+let currentBlock;
+let validRateDurationInBlocks = 5000;
+
+//tokens data
+////////////
+let rcnToken;
+
+// imbalance data
+let minimalRecordResolution = 2; //low resolution so I don't lose too much data. then easier to compare calculated imbalance values.
+let maxPerBlockImbalance = 4000;
+let maxTotalImbalance = maxPerBlockImbalance * 12;
+
+// all price steps in bps (basic price steps).
+// 100 bps means rate change will be: price * (100 + 10000) / 10000 == raise rate in 1%
+// higher rate is better for user. will get more dst quantity for his tokens.
+// all x values represent token imbalance. y values represent equivalent steps in bps.
+// buyImbalance represents coin shortage. higher buy imbalance = more tokens were bought.
+// generally. speaking, if imbalance is higher we want to have:
+//      - smaller buy bps (negative) to lower rate when buying token with ether.
+//      - bigger sell bps to have higher rate when buying ether with token.
+////////////////////
+
+//quantity and imbalance buy steps
+let qtyBuyStepX = [-1400, -700, -150, 0, 100, 350, 700,  1400];
+qtyBuyStepX = qtyBuyStepX.map(x => web3.toWei(x));// Wei to Token
+
+let qtyBuyStepY = [ 1000,   75,   25, 0,  0, -70, -160, -3000];
+let imbalanceBuyStepX = [-8500, -2800, -1500, 0, 1500, 2800,  4500];
+let imbalanceBuyStepY = [ 1300,   130,    43, 0,   0,  -110, -1600];
+//sell
+//sell price will be 1 / buy (assuming no spread) so sell is actually buy price in other direction
+let qtySellStepX = [-1400, -700, -150, 0, 150, 350, 700, 1400];
+let qtySellStepY = [-300,   -80,  -15, 0,   0, 120, 170, 3000];
+
+//sell imbalance step
+let imbalanceSellStepX = [-8500, -2800, -1500, 0, 1500, 2800,  4500];
+let imbalanceSellStepY = [-1500,  -320,   -75, 0,    0,  110,   650];
+
+
+//compact data.
+let sells = [];
+let buys = [];
+let indices = [];
+let compactBuyArr = [];
+let compactSellArr = [];
 
 contract('KyberGateway', function(accounts) {
-    let ETH_TOKEN_ADDRESS = "0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-    let rcnEngine;
-    let rcn;
-    let oracle;
-    let kyber;
-    let kyberGate;
-
     async function assertThrow(promise) {
         try {
           await promise;
@@ -30,104 +105,212 @@ contract('KyberGateway', function(accounts) {
     };
 
     beforeEach("Deploy Tokens, Engine, Kyber", async function(){
-        // Deploy RCN token
-        rcn = await TestToken.new("Ripio Credit Network", "RCN", 18, "1.1", 4000);
-        // Deploy RCN Engine
-        rcnEngine = await NanoLoanEngine.new(rcn.address);
-        // Deploy Oracle and add currencies
-        oracle = await TestOracle.new();
+        // set account addresses
+        admin = accounts[0];
+        operator = accounts[1];
+        alerter = accounts[2];
+        user1 = accounts[4];
+        user2 = accounts[5];
 
-        // Deploy Kyber network and fund it
-        kyber = await KyberMock.new(rcn.address);
+        currentBlock = priceUpdateBlock = await Helper.getCurrentBlock();
+
+        //init contracts
+        pricing = await ConversionRates.new(admin, {});
+
+        //set pricing general parameters
+        await pricing.setValidRateDurationInBlocks(validRateDurationInBlocks, {from:admin});
+
+        //create and add token addresses...
+        rcnToken = await TestToken.new("Ripio Credit Network", "RCN", 18);
+        await pricing.addToken(rcnToken.address, {from:admin});
+        await pricing.setTokenControlInfo(rcnToken.address, minimalRecordResolution, maxPerBlockImbalance, maxTotalImbalance, {from:admin});
+        await pricing.enableTokenTrade(rcnToken.address, {from:admin});
+
+        //add operator
+        await pricing.addOperator(operator, {from:admin});
+
+        //buy is ether to token rate. sale is token to ether rate. so sell == 1 / buy. assuming we have no spread.
+        let ethersToToken = web3.toWei(5000);
+        let tokensToEther = web3.toWei(0.0002);
+
+        buys.length = sells.length = indices.length = 0;
+
+        await pricing.setBaseRate([rcnToken.address], [ethersToToken], [tokensToEther], buys, sells, currentBlock, indices, {from: operator});
+
+        //set compact data
+        compactBuyArr = [0, 0, 0, 0, 0, 06, 07, 08, 09, 10, 11, 12, 13, 14];
+        let compactBuyHex = Helper.bytesToHex(compactBuyArr);
+        buys.push(compactBuyHex);
+
+        compactSellArr = [0, 0, 0, 0, 0, 26, 27, 28, 29, 30, 31, 32, 33, 34];
+        let compactSellHex = Helper.bytesToHex(compactSellArr);
+        sells.push(compactSellHex);
+
+        indices[0] = 0;
+
+        assert.equal(indices.length, sells.length, "bad sells array size");
+        assert.equal(indices.length, buys.length, "bad buys array size");
+
+        await pricing.setCompactData(buys, sells, currentBlock, indices, {from: operator});
+
+        await pricing.setQtyStepFunction(rcnToken.address, qtyBuyStepX, qtyBuyStepY, qtySellStepX, qtySellStepY, {from:operator});
+        await pricing.setImbalanceStepFunction(rcnToken.address, imbalanceBuyStepX, imbalanceBuyStepY, imbalanceSellStepX, imbalanceSellStepY, {from:operator});
+
+
+        network = await Network.new(admin);
+        await network.addOperator(operator);
+        reserve = await Reserve.new(network.address, pricing.address, admin);
+        await pricing.setReserveAddress(reserve.address);
+        await reserve.addAlerter(alerter);
+        await rcnToken.createTokens(reserve.address, web3.toWei(1000));
+
+        // add reserves
+        await network.addReserve(reserve.address, true, {from:admin});
+
+        //set contracts
+        feeBurner = await FeeBurner.new(admin, rcnToken.address, network.address);
+        let kgtToken = await TestToken.new("kyber genesis token", "KGT", 0);
+        whiteList = await WhiteList.new(admin, kgtToken.address);
+        await whiteList.addOperator(operator, {from:admin});
+        await whiteList.setCategoryCap(0, web3.toWei(30000), {from:operator});
+        await whiteList.setSgdToEthRate(web3.toWei(30000), {from:operator});
+        assert.equal((await whiteList.getOperators())[0], operator, "wrong opertor");
+
+        expectedRate = await ExpectedRate.new(network.address, admin);
+        await network.setParams(whiteList.address, expectedRate.address, feeBurner.address, gasPrice.valueOf(), negligibleRateDiff, {from:admin});
+        await network.setEnable(true, {from:admin});
+        let price = await network.maxGasPrice();
+        assert.equal(price.valueOf(), gasPrice.valueOf(), "price equal gasPrice");
+
+        //list tokens per reserve
+        await network.listPairForReserve(reserve.address, ethAddress, rcnToken.address, true, {from:admin});
+        //await network.listPairForReserve(reserve.address, rcnToken.address, ethAddress, true, {from:admin});
+
+        // Deploy RCN Engine
+        rcnEngine = await NanoLoanEngine.new(rcnToken.address);
+        // Deployen vivo Oracle and add currencies
+        oracle = await TestOracle.new();
         // Deploy Kyber gateway
-        kyberGate = await KyberGateway.new(rcn.address);
+        kyberGate = await KyberGateway.new(rcnToken.address);
+    });
+
+    it("Simple test to KyberGateway toETHAmount()", async() => {
+        let highImbalance = web3.toWei(500*4);
+        await pricing.setTokenControlInfo(ethAddress, new BigNumber(10).pow(14), highImbalance, highImbalance);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(14), highImbalance, highImbalance);
+
+        // get amount ETH to buy RCN with the worst rate
+        let destAmountRCN = web3.toWei(400);
+        let srcAmountETH = await kyberGate.toETHAmount(network.address, web3.toWei(0.08), destAmountRCN);
+        assert.isAtLeast(srcAmountETH.toNumber(), web3.toWei(0.08), "The source amount >= 0.08 ETH");
+    });
+
+    it("Simple test to KyberGateway lend()", async() => {
+        let rcnAmount = web3.toWei(400);
+        let loanReceipt = await rcnEngine.createLoan(0x0, user2, 0x0,  rcnAmount, 1, 1, 86400, 0, 10**30, "", {from:user2});
+        let loanId = loanReceipt.logs[0].args._index;
+        //set high imbalance values - to avoid block trade due to total imbalance per block
+        let highImbalance = web3.toWei(2000);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(14), highImbalance, highImbalance);
+        // check previus balances
+        assert.equal((await rcnToken.balanceOf(user1)).toNumber(), 0, "The balance of user1 should be 0 RCN");
+        assert.equal((await rcnToken.balanceOf(user2)).toNumber(), 0, "The balance of user2 should be 0 RCN");
+
+        let amount = (await kyberGate.toETHAmount(network.address, 0, rcnAmount)).toNumber();
+        let raiseAmount = raise(amount);
+        await kyberGate.lend(network.address, rcnEngine.address, loanId, 0x0, [], [], web3.toWei(400), { value: raiseAmount, from: user1});
+        // check post balances
+        assert.equal((await rcnToken.balanceOf(kyberGate.address)).toNumber(), 0, "The balance of kyberGate should be 0 RCN");
+        assert.isBelow((await rcnToken.balanceOf(user1)).toNumber(), Math.round(rcnAmount*0.1), "The balance of user1 should be 10% of loan amount or less RCN");
+        assert.equal((await rcnToken.balanceOf(user2)).toNumber(), rcnAmount, "The borrower balance should be 400 RCN");
     });
 
     it("Should transfer the ownership of the loan", async() => {
-        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0,  web3.toWei(10), 1, 1, 86400, 0, 10**30, "", {from:accounts[2]})
+        let rcnAmount = web3.toWei(400);
+        let loanReceipt = await rcnEngine.createLoan(0x0, user2, 0x0,  rcnAmount, 1, 1, 86400, 0, 10**30, "", {from:user2});
         let loanId = loanReceipt.logs[0].args._index;
+        //set high imbalance values - to avoid block trade due to total imbalance per block
+        let highImbalance = web3.toWei(2000);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(14), highImbalance, highImbalance);
 
-        await rcn.createTokens(kyber.address, web3.toWei(100))
-        await kyber.setRateRE(web3.toWei(0.0002))
-        await kyber.setRateER(web3.toWei(4000))
+        let amount = (await kyberGate.toETHAmount(network.address, 0, rcnAmount)).toNumber();
+        let raiseAmount = raise(amount);
+        await kyberGate.lend(network.address, rcnEngine.address, loanId, 0x0, [], [], web3.toWei(400), { value: raiseAmount, from: user1});
 
-        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], true, 0, { value: web3.toWei(20), from: accounts[2]})
-
-        assert.equal(await rcnEngine.ownerOf(loanId), accounts[2], "The owner of the loan should be the caller account")
+        assert.equal(await rcnEngine.ownerOf(loanId), user1, "The owner of the loan should be the caller account(user1)");
     });
 
     it("Should transfer the exceeding ETH amount", async() => {
-        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0, web3.toWei(6000), 1, 1, 86400, 0, 10**30, "", {from:accounts[2]})
+        let rcnAmount = web3.toWei(400);
+        let loanReceipt = await rcnEngine.createLoan(0x0, user2, 0x0,  rcnAmount, 1, 1, 86400, 0, 10**30, "", {from:user2});
         let loanId = loanReceipt.logs[0].args._index;
+        //set high imbalance values - to avoid block trade due to total imbalance per block
+        let highImbalance = web3.toWei(2000);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(14), highImbalance, highImbalance);
 
-        await rcn.createTokens(kyber.address, web3.toWei(10000));
-        await kyber.setRateER(web3.toWei(4000));
-        await kyber.setRateRE(web3.toWei(0.0002));
+        let prevBalance = await web3.eth.getBalance(user1);
 
-        let prevBalance = (await web3.eth.getBalance(accounts[2])).toNumber();
-        let lendReceipt = await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], true, 0, { value: web3.toWei(12), from: accounts[2]});
+        let amount = (await kyberGate.toETHAmount(network.address, 0, rcnAmount)).toNumber();
+        let raiseAmount = raise(amount);
+        let lendReceipt = await kyberGate.lend(network.address, rcnEngine.address, loanId, 0x0, [], [], web3.toWei(400), { value: raiseAmount, from: user1});
 
         assert.equal(await web3.eth.getBalance(kyberGate.address), 0, "Should not remain gas in kyber gateway");
-        assert.equal((await rcn.balanceOf(kyberGate.address)).toNumber(), 0, "Should not remain any tokens in gateway");
         let gasPrice = (await web3.eth.getTransaction(lendReceipt.tx)).gasPrice;
         // to calculate the gas spend in ETH
         let gasUsed = lendReceipt.receipt.gasUsed;
-        let finalBalance = await web3.eth.getBalance(accounts[2]);
-        let expectedPrevBalance = (finalBalance.add(gasPrice.mul(gasUsed)).add(web3.toWei(1.5))).toNumber();
-        assert.equal(expectedPrevBalance, prevBalance, "Account balance should only have lost 1.5 ETH plus gas");
-    });
-
-    it("Test Kyber lend", async() => {
-        let loanAmountRCN = web3.toWei(2000);
-        // Request a loan for the accounts[2] it should be index 0
-        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0, loanAmountRCN, 100000000, 100000000, 86400, 0, 10**30, "Test kyberGateway", {from:accounts[2]});
-        let loanId = loanReceipt.logs[0].args._index;
-
-        await rcn.createTokens(kyber.address, web3.toWei(2001));
-        await kyber.setRateRE(web3.toWei(0.0002));
-        await kyber.setRateER(web3.toWei(4000));
-        // Trade ETH to RCN and Lend
-        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], false, 1, {value: web3.toWei(0.5), from:accounts[3]});
-        // Check the final ETH balance
-        assert.equal(await web3.eth.getBalance(kyber.address), web3.toWei(0.5), "The balance of kyber should be 0.5 ETH");
-        // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(kyber.address)).toNumber(), web3.toWei(1), "The balance of kyber should be 1 RCN");
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), web3.toWei(2000), "The balance of acc2(borrower) should be 2000 RCN");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
-        // check the lender of the loan
-        let loanOwner = await rcnEngine.ownerOf(0);
-        assert.equal(loanOwner, accounts[3], "The lender should be account 3");
-    });
-
-    it("Test Kyber large amount loan", async() => {
-        let loanAmountRCN = web3.toWei(499999);
-        // Request a loan for the accounts[2] it should be index 0
-        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0, loanAmountRCN, 100000000, 100000000, 86400, 0, 10**30, "Test kyberGateway", {from:accounts[2]});
-        let loanId = loanReceipt.logs[0].args._index;
-
-        await rcn.createTokens(kyber.address, web3.toWei(500000));
-        await kyber.setRateRE(web3.toWei(0.00001));
-        await kyber.setRateER(web3.toWei(100000));
-        // Trade ETH to RCN and Lend
-        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], true, 0, {value: web3.toWei(5), from:accounts[3]});
-        // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), web3.toWei(499999), "The balance of acc2(borrower) should be 499999 RCN");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
+        let finalBalance = await web3.eth.getBalance(user1);
+        let spendDelta = (prevBalance.sub(finalBalance.add(gasPrice.mul(gasUsed)).add(raiseAmount))).toNumber();
+        assert.isAtMost(spendDelta, 5000, "The spend delta should be small");
     });
 
     it("Test Kyber small amount loan", async() => {
-        let loanAmountRCN = (web3.toWei(0.0004));
-        // Request a loan for the accounts[2] it should be index 0
-        let loanReceipt = await rcnEngine.createLoan(0x0, accounts[2], 0x0, loanAmountRCN, 100000000, 100000000, 86400, 0, 10**30, "Test kyberGateway", {from:accounts[2]});
+        let rcnAmount = 5000;
+        let loanReceipt = await rcnEngine.createLoan(0x0, user2, 0x0,  rcnAmount, 1, 1, 86400, 0, 10**30, "", {from:user2});
         let loanId = loanReceipt.logs[0].args._index;
+        //set high imbalance values - to avoid block trade due to total imbalance per block
+        let highImbalance = web3.toWei(2000);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(14), highImbalance, highImbalance);
 
-        await rcn.createTokens(kyber.address, web3.toWei(0.00041));
-        await kyber.setRateRE(web3.toWei(0.00001));
-        await kyber.setRateER(web3.toWei(100000));
-        // Trade ETH to RCN and Lend
-        await kyberGate.lend(kyber.address, rcnEngine.address, loanId, 0x0, [], [], true, 0, {value: web3.toWei(0.0005), from:accounts[3]});
-        // Check the final RCN balance
-        assert.equal((await rcn.balanceOf(accounts[2])).toNumber(), web3.toWei(0.0004), "The balance of acc2(borrower) should be 0.0004 RCN");
-        assert.equal((await rcn.balanceOf(accounts[3])).toNumber(), 0, "The balance of acc3(lender) should be 0 RCN");
+        let amount = (await kyberGate.toETHAmount(network.address, 0, rcnAmount)).toNumber();
+        let raiseAmount = raise(amount);
+        await kyberGate.lend(network.address, rcnEngine.address, loanId, 0x0, [], [], web3.toWei(400), { value: raiseAmount, from: user1});
+        // check post balances
+        assert.equal((await rcnToken.balanceOf(kyberGate.address)).toNumber(), 0, "The balance of kyberGate should be 0 RCN");
+        assert.isBelow((await rcnToken.balanceOf(user1)).toNumber(), 10000, "The balance of user1 should be 10000 or less RCN");
+        assert.equal((await rcnToken.balanceOf(user2)).toNumber(), rcnAmount, "The balance of user2(borrower) should be 100 Wei RCN");
+    });
+
+    it("Test Kyber large amount loan", async() => {
+        let rcnAmount = web3.toWei(499999);
+        await rcnToken.createTokens(reserve.address, rcnAmount);
+        let loanReceipt = await rcnEngine.createLoan(0x0, user2, 0x0,  rcnAmount, 1, 1, 86400, 0, 10**30, "", {from:user2});
+        let loanId = loanReceipt.logs[0].args._index;
+        //set high imbalance values - to avoid block trade due to total imbalance per block
+        let highImbalance = web3.toWei(900000);
+        await pricing.setTokenControlInfo(rcnToken.address, new BigNumber(10).pow(18), highImbalance, highImbalance);
+
+        let ethAmount = await kyberGate.toETHAmount(network.address, web3.toWei(4), rcnAmount);
+        await kyberGate.lend(network.address, rcnEngine.address, loanId, 0x0, [], [], web3.toWei(400), { value: ethAmount, from: user1});
+        // check post balances
+        assert.equal((await rcnToken.balanceOf(kyberGate.address)).toNumber(), 0, "The balance of kyberGate should be 0 RCN");
+        assert.isBelow((await rcnToken.balanceOf(user1)).toNumber(), Math.round(rcnAmount*0.1), "The balance of user1 should be 10% of loan amount or less RCN");
+        assert.equal((await rcnToken.balanceOf(user2)).toNumber(), rcnAmount, "The balance of user2(borrower) should be 499999 RCN");
     });
 })
+
+function raise(amount) {
+    function maxQtyRaise(){
+        for(let i = 0; i < qtyBuyStepX.length; i++)
+            if(amount <= qtyBuyStepX[i])
+                return qtyBuyStepY[i];
+        return qtyBuyStepY[qtyBuyStepY.length-1];
+    }
+    function maxImbalanceRaise(){
+        return imbalanceBuyStepY[imbalanceBuyStepY.length-1];
+    }
+    let deltaRaise = 0.1;
+    let sumRaise = ((maxQtyRaise() + maxImbalanceRaise())/10000)*(-1);
+    let factorRaise = 1 + sumRaise + deltaRaise;
+
+    return Math.round(amount * factorRaise);
+}

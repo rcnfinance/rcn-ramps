@@ -3,16 +3,16 @@ pragma solidity ^0.4.19;
 import "./interfaces/Engine.sol";
 import "./interfaces/Cosigner.sol";
 import "./utils/RpSafeMath.sol";
-import "./KyberMock.sol";
-
+import "./interfaces/ERC20Interface.sol";
+import "./kyber_contracts/KyberNetwork.sol";
 
 contract KyberGateway is RpSafeMath {
     address constant internal ETH_TOKEN_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
 
-    Token public RCN;
-    Token public ETH = Token(ETH_TOKEN_ADDRESS);
+    ERC20 public RCN;
+    ERC20 public ETH = ERC20(ETH_TOKEN_ADDRESS);
 
-    constructor(Token _RCN) public {
+    constructor(ERC20 _RCN) public {
         RCN = _RCN;
     }
 
@@ -20,54 +20,64 @@ contract KyberGateway is RpSafeMath {
         @notice TODO
         @dev TODO
 
-        @param _kyber kyverNetwork market
+        @param _network kyverNetwork market
         @param _rcnEngine the engine of RCN
         @param _index Index of the loan
         @param _cosigner Address of the cosigner, 0x0 for lending without cosigner.
         @param _cosignerData Data required by the cosigner to process the request.
         @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
-        @param _changeInETH if true repurchase ETH return the change in ETH, if false return in RCN
-        @param _changeMinAmount minimum repurchase change amount
+        @param _minChangeRCN minimum repurchase change amount
 
         @return true if the trade and lend was done successfully
     */
     function lend(
-        KyberMock _kyber,
+        KyberNetwork _network,
         Engine _rcnEngine,
         uint _index,
         Cosigner _cosigner,
         bytes _cosignerData,
         bytes _oracleData,
-        bool _changeInETH,
-        uint256 _changeMinAmount
+        uint _minChangeRCN
     ) public payable returns (bool) {
-        uint256 loanAmount = _rcnEngine.getAmount(_index);
-        uint256 rateER;
-        (rateER, ) = _kyber.getExpectedRate(ETH, RCN, loanAmount);
-        rateER = 10**36 / rateER;
+        require(tx.gasprice <= _network.maxGasPrice(), "The gas price is too much");
+        require(_network.enabled(), "The network is down");
+        require(msg.value > 0);
 
-        uint256 targetAmountETH = _kyber.convertRate(loanAmount, rateER);
-        uint256 returnAmount = safeSubtract(msg.value, targetAmountETH);
-        uint256 totalTokens = _kyber.trade.value(targetAmountETH)(ETH, targetAmountETH, RCN, this, 10 ** 30, 0, this);
+        uint rcnAmount = _rcnEngine.getAmount(_index);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, RCN, this, 10 ** 30, 0, 0);
+        require(boughtRCN >= rcnAmount, "insufficient found");
 
-        RCN.approve(address(_rcnEngine), totalTokens);
-
+        RCN.approve(address(_rcnEngine), rcnAmount);
         require(_rcnEngine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
-
         require(_rcnEngine.transfer(msg.sender, _index), "fail transfer");
 
-        // return change
-        uint256 change = totalTokens - loanAmount;
-        if(_changeInETH && change > _changeMinAmount){
-            change = _kyber.trade(RCN, change, ETH, this, 10 ** 30, 0, this);
+        uint change = safeSubtract(boughtRCN, rcnAmount);
+        if(_minChangeRCN <= change){
+            change = _network.trade(RCN, change, ETH, this, 10 ** 30, 0, this);
+            msg.sender.transfer(change);
         }else{
-            RCN.transferFrom(address(this), msg.sender, change);
-            change = 0;
+            RCN.transfer(msg.sender, change);
         }
 
-        msg.sender.transfer(returnAmount + change);
-
         return true;
+    }
+
+      event T(uint change);
+    /**
+        @notice TODO
+        @dev TODO
+
+        @param _network kyverNetwork market
+        @param _calculatedEthAmount pre-calculate amount of ETH
+        @param _rcnAmount the expected amount of RCN
+
+        @return the expected amount of ETH
+    */
+    function toETHAmount(KyberNetwork _network, uint _calculatedEthAmount, uint _rcnAmount) public view returns(uint){
+      uint rate;
+      (rate, ) = _network.getExpectedRate(ETH, RCN, _calculatedEthAmount);
+
+      return (safeMult(10**18, _rcnAmount)/rate) + 1;// add one for the presicion
     }
 }
