@@ -27,7 +27,7 @@ contract ERCLockable is RpSafeMath, Ownable {
     function unlockERC20(address token, uint256 amount) internal {
         lockedERC20[token] = safeSubtract(lockedERC20[token], amount);
     }
-    
+
     function lockERC721(address token, uint256 id) internal {
         lockedERC721[token][id] = true;
     }
@@ -41,7 +41,7 @@ contract ERCLockable is RpSafeMath, Ownable {
 
         @param token Token to withdraw
         @param to Destination of the tokens
-        @param amountOrId Amount/ID to withdraw 
+        @param amountOrId Amount/ID to withdraw
     */
     function withdrawTokens(Token token, address to, uint256 amountOrId) public onlyOwner returns (bool) {
         require(to != address(0));
