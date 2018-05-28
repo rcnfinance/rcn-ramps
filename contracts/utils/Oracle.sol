@@ -1,7 +1,6 @@
 pragma solidity ^0.4.19;
 
-import "../utils/Ownable.sol";
-import "./Token.sol";
+import "./Ownable.sol";
 
 /**
     @dev Defines the interface of a standard RCN oracle.

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.19;
 
-import "./interfaces/Engine.sol";
-import "./interfaces/Cosigner.sol";
+import "./rcn/interfaces/Engine.sol";
+import "./rcn/interfaces/Cosigner.sol";
 import "./utils/RpSafeMath.sol";
-import "./interfaces/ERC20Interface.sol";
-import "./kyber_contracts/KyberNetwork.sol";
+import "./kyber/interfaces/ERC20Interface.sol";
+import "./kyber/KyberNetwork.sol";
 
 contract KyberGateway is RpSafeMath {
     address constant internal ETH_TOKEN_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.19;
 
 import "./Ownable.sol";
-import "./../interfaces/Token.sol";
+import "../rcn/interfaces/Token.sol";
 import "./RpSafeMath.sol";
 
 contract ERCLockable is RpSafeMath, Ownable {

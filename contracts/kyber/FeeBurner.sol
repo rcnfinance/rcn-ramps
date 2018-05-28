@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/ERC20Interface.sol";
-import "../interfaces/FeeBurnerInterface.sol";
+import "./interfaces/ERC20Interface.sol";
+import "./interfaces/FeeBurnerInterface.sol";
 import "./Withdrawable.sol";
 import "./Utils.sol";
 

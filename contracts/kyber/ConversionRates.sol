@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/ERC20Interface.sol";
 import "./VolumeImbalanceRecorder.sol";
 import "./Utils.sol";
-import "../interfaces/ConversionRatesInterface.sol";
+import "./interfaces/ConversionRatesInterface.sol";
 
 contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, Utils {
 

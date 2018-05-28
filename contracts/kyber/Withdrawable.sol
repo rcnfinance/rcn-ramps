@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/ERC20Interface.sol";
 import "./PermissionGroups.sol";
 
 

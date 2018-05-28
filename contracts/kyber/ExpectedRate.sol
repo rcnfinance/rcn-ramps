@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/ERC20Interface.sol";
 import "./KyberNetwork.sol";
 import "./Withdrawable.sol";
-import "../interfaces/ExpectedRateInterface.sol";
+import "./interfaces/ExpectedRateInterface.sol";
 
 
 contract ExpectedRate is Withdrawable, ExpectedRateInterface, Utils {

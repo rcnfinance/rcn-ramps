@@ -1,14 +1,14 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/KyberReserveInterface.sol";
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/KyberReserveInterface.sol";
+import "./interfaces/ERC20Interface.sol";
 import "./Withdrawable.sol";
 import "./Utils.sol";
 import "./PermissionGroups.sol";
-import "../interfaces/WhiteListInterface.sol";
-import "../interfaces/ExpectedRateInterface.sol";
-import "../interfaces/FeeBurnerInterface.sol";
+import "./interfaces/WhiteListInterface.sol";
+import "./interfaces/ExpectedRateInterface.sol";
+import "./interfaces/FeeBurnerInterface.sol";
 
 
 

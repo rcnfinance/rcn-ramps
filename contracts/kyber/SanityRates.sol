@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
 
 
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/ERC20Interface.sol";
 import "./Withdrawable.sol";
 import "./Utils.sol";
-import "../interfaces/SanityRatesInterface.sol";
+import "./interfaces/SanityRatesInterface.sol";
 
 
 contract SanityRates is SanityRatesInterface, Withdrawable, Utils {

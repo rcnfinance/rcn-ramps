@@ -1,10 +1,10 @@
 pragma solidity ^0.4.19;
 
-import "../../Ownable.sol";
-import "../../RpSafeMath.sol";
-import "../../../interfaces/Token.sol";
-import "../../../interfaces/Oracle.sol";
-import "../../../interfaces/Engine.sol";
+import "../utils/Ownable.sol";
+import "../utils/RpSafeMath.sol";
+import "./interfaces/Token.sol";
+import "../utils/Oracle.sol";
+import "./interfaces/Engine.sol";
 
 
 contract ERC721 {

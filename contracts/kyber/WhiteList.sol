@@ -2,8 +2,8 @@ pragma solidity ^0.4.18;
 
 
 import "./Withdrawable.sol";
-import "../interfaces/WhiteListInterface.sol";
-import "../interfaces/ERC20Interface.sol";
+import "./interfaces/WhiteListInterface.sol";
+import "./interfaces/ERC20Interface.sol";
 
 
 contract WhiteList is WhiteListInterface, Withdrawable {
