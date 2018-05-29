@@ -1,6 +1,6 @@
 pragma solidity ^0.4.19;
 
-import "../../utils/Oracle.sol";
+import "./Oracle.sol";
 import "./Cosigner.sol";
 
 contract Engine {

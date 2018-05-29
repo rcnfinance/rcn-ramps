@@ -1,16 +1,14 @@
 pragma solidity ^0.4.19;
 
-import "./rcn/interfaces/Engine.sol";
-import "./rcn/interfaces/Cosigner.sol";
-import "./utils/RpSafeMath.sol";
+import "./rcn/NanoLoanEngine.sol";
 import "./kyber/interfaces/ERC20Interface.sol";
 import "./kyber/KyberNetwork.sol";
+import "./rcn/interfaces/Cosigner.sol";
+import "./utils/RpSafeMath.sol";
 
 contract KyberGateway is RpSafeMath {
-    address constant internal ETH_TOKEN_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
-
+    ERC20 constant internal ETH = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
     ERC20 public RCN;
-    ERC20 public ETH = ERC20(ETH_TOKEN_ADDRESS);
 
     constructor(ERC20 _RCN) public {
         RCN = _RCN;
@@ -21,7 +19,7 @@ contract KyberGateway is RpSafeMath {
         @dev TODO
 
         @param _network kyverNetwork market
-        @param _rcnEngine the engine of RCN
+        @param _engine the engine of RCN
         @param _index Index of the loan
         @param _cosigner Address of the cosigner, 0x0 for lending without cosigner.
         @param _cosignerData Data required by the cosigner to process the request.
@@ -33,7 +31,7 @@ contract KyberGateway is RpSafeMath {
     */
     function lend(
         KyberNetwork _network,
-        Engine _rcnEngine,
+        NanoLoanEngine _engine,
         uint _index,
         Cosigner _cosigner,
         bytes _cosignerData,
@@ -44,13 +42,13 @@ contract KyberGateway is RpSafeMath {
         require(_network.enabled(), "The network is down");
         require(msg.value > 0);
 
-        uint rcnAmount = _rcnEngine.getAmount(_index);
+        uint rcnAmount = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
         uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, RCN, this, 10 ** 30, 0, 0);
         require(boughtRCN >= rcnAmount, "insufficient found");
 
-        RCN.approve(address(_rcnEngine), rcnAmount);
-        require(_rcnEngine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
-        require(_rcnEngine.transfer(msg.sender, _index), "fail transfer");
+        RCN.approve(address(_engine), rcnAmount);
+        require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
+        require(_engine.transfer(msg.sender, _index), "fail transfer");
 
         uint change = safeSubtract(boughtRCN, rcnAmount);
         if(_minChangeRCN <= change){
@@ -63,7 +61,6 @@ contract KyberGateway is RpSafeMath {
         return true;
     }
 
-      event T(uint change);
     /**
         @notice TODO
         @dev TODO
@@ -74,10 +71,28 @@ contract KyberGateway is RpSafeMath {
 
         @return the expected amount of ETH
     */
-    function toETHAmount(KyberNetwork _network, uint _calculatedEthAmount, uint _rcnAmount) public view returns(uint){
-      uint rate;
-      (rate, ) = _network.getExpectedRate(ETH, RCN, _calculatedEthAmount);
+    function toETHAmount(
+        KyberNetwork _network,
+        uint _calculatedEthAmount,
+        uint _rcnAmount
+    ) public view returns(uint){
+        uint rate;
+        (rate, ) = _network.getExpectedRate(ETH, RCN, _calculatedEthAmount);
 
-      return (safeMult(10**18, _rcnAmount)/rate) + 1;// add one for the presicion
+        return (safeMult(10**18, _rcnAmount)/rate) + 1;// add one for the presicion
+    }
+
+    function getRequiredRcnLend(
+        NanoLoanEngine _engine,
+        uint _index,
+        bytes _oracleData,
+        bytes _cosignerData
+    ) public returns(uint required){
+        Cosigner cosigner = Cosigner(_engine.getCosigner(_index));
+
+        if (cosigner != address(0)) {
+            required += cosigner.cost(_engine, _index, _oracleData, _cosignerData);
+        }
+        required += _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _engine.getAmount(_index));
     }
 }
