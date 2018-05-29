@@ -8,11 +8,6 @@ import "./utils/RpSafeMath.sol";
 
 contract KyberGateway is RpSafeMath {
     ERC20 constant internal ETH = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
-    ERC20 public RCN;
-
-    constructor(ERC20 _RCN) public {
-        RCN = _RCN;
-    }
 
     /**
         @notice TODO
@@ -43,19 +38,20 @@ contract KyberGateway is RpSafeMath {
         require(msg.value > 0);
 
         uint rcnAmount = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, RCN, this, 10 ** 30, 0, 0);
+        Token rcn = _engine.rcn();
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
         require(boughtRCN >= rcnAmount, "insufficient found");
 
-        RCN.approve(address(_engine), rcnAmount);
+        rcn.approve(address(_engine), rcnAmount);
         require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
         require(_engine.transfer(msg.sender, _index), "fail transfer");
 
         uint change = safeSubtract(boughtRCN, rcnAmount);
         if(_minChangeRCN <= change){
-            change = _network.trade(RCN, change, ETH, this, 10 ** 30, 0, this);
+            change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
             msg.sender.transfer(change);
         }else{
-            RCN.transfer(msg.sender, change);
+            rcn.transfer(msg.sender, change);
         }
 
         return true;
@@ -74,10 +70,12 @@ contract KyberGateway is RpSafeMath {
     function toETHAmount(
         KyberNetwork _network,
         uint _calculatedEthAmount,
-        uint _rcnAmount
+        uint _rcnAmount,
+        NanoLoanEngine _engine
     ) public view returns(uint){
+        Token rcn = _engine.rcn();
         uint rate;
-        (rate, ) = _network.getExpectedRate(ETH, RCN, _calculatedEthAmount);
+        (rate, ) = _network.getExpectedRate(ETH, rcn, _calculatedEthAmount);
 
         return (safeMult(10**18, _rcnAmount)/rate) + 1;// add one for the presicion
     }
