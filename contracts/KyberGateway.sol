@@ -9,6 +9,43 @@ import "./utils/RpSafeMath.sol";
 contract KyberGateway is RpSafeMath {
     ERC20 constant internal ETH = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
+    function pay(
+        KyberNetwork _network,
+        NanoLoanEngine _engine,
+        uint _index,
+        uint _amount,
+        bytes _oracleData,
+        uint _minChangeRCN
+    ) public payable returns (bool) {
+        require(tx.gasprice <= _network.maxGasPrice(), "The gas price is too much");
+        require(_network.enabled(), "The network is down");
+        require(msg.value > 0);
+
+        Token rcn = _engine.rcn();
+        uint initialBalance = rcn.balanceOf(this);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
+        uint requiredRcn = _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _amount);
+
+        require(boughtRCN >= requiredRcn, "insufficient found");
+
+        rcn.approve(address(_engine), requiredRcn);
+        require(_engine.pay(_index, requiredRcn, msg.sender, _oracleData));
+        rcn.approve(address(_engine), 0);
+
+        uint change = safeSubtract(boughtRCN, requiredRcn);
+
+        if(_minChangeRCN <= change){
+            change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
+            msg.sender.transfer(change);
+        }else{
+            rcn.transfer(msg.sender, change);
+        }
+
+        require(rcn.balanceOf(this) == initialBalance);
+
+        return true;
+    }
+
     /**
         @notice TODO
         @dev TODO
@@ -37,22 +74,27 @@ contract KyberGateway is RpSafeMath {
         require(_network.enabled(), "The network is down");
         require(msg.value > 0);
 
-        uint rcnAmount = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
         Token rcn = _engine.rcn();
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
-        require(boughtRCN >= rcnAmount, "insufficient found");
+        uint initialBalance = rcn.balanceOf(this);
 
-        rcn.approve(address(_engine), rcnAmount);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
+
+        uint requiredRcn = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
+        require(boughtRCN >= requiredRcn, "insufficient found");
+
+        rcn.approve(address(_engine), requiredRcn);
         require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
         require(_engine.transfer(msg.sender, _index), "fail transfer");
 
-        uint change = safeSubtract(boughtRCN, rcnAmount);
+        uint change = safeSubtract(boughtRCN, requiredRcn);
         if(_minChangeRCN <= change){
             change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
             msg.sender.transfer(change);
         }else{
             rcn.transfer(msg.sender, change);
         }
+
+        require(rcn.balanceOf(this) == initialBalance);
 
         return true;
     }
@@ -63,21 +105,21 @@ contract KyberGateway is RpSafeMath {
 
         @param _network kyverNetwork market
         @param _calculatedEthAmount pre-calculate amount of ETH
-        @param _rcnAmount the expected amount of RCN
+        @param _requiredRcn the expected amount of RCN
 
         @return the expected amount of ETH
     */
     function toETHAmount(
         KyberNetwork _network,
         uint _calculatedEthAmount,
-        uint _rcnAmount,
+        uint _requiredRcn,
         NanoLoanEngine _engine
     ) public view returns(uint){
         Token rcn = _engine.rcn();
         uint rate;
         (rate, ) = _network.getExpectedRate(ETH, rcn, _calculatedEthAmount);
 
-        return (safeMult(10**18, _rcnAmount)/rate) + 1;// add one for the presicion
+        return (safeMult(10**18, _requiredRcn)/rate) + 1;// add one for the presicion
     }
 
     function getRequiredRcnLend(
