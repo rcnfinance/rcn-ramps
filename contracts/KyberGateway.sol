@@ -51,7 +51,7 @@ contract KyberGateway is RpSafeMath {
             change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
             msg.sender.transfer(change);
         }else{
-            rcn.transfer(msg.sender, change);
+            require(rcn.transfer(msg.sender, change), "RCN transfer fail");
         }
 
         require(rcn.balanceOf(this) == initialBalance);
@@ -103,7 +103,7 @@ contract KyberGateway is RpSafeMath {
             change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
             msg.sender.transfer(change);
         }else{
-            rcn.transfer(msg.sender, change);
+            require(rcn.transfer(msg.sender, change), "RCN transfer fail");
         }
 
         require(rcn.balanceOf(this) == initialBalance);
