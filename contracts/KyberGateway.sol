@@ -9,6 +9,19 @@ import "./utils/RpSafeMath.sol";
 contract KyberGateway is RpSafeMath {
     ERC20 constant internal ETH = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
+    /**
+        @notice Performs the a trade on kyber network and pay an amount on loan in nanoLoanEngine
+
+        @param _network kyverNetwork market
+        @param _engine the engine of RCN
+        @param _index Index of the loan
+        @param _amount Amount of pay in loan currency
+        @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
+            by the url exposed in the url() method of the oracle.
+        @param _minChangeRCN minimum repurchase change amount
+
+        @return true if the trade and pay was done successfully
+    */
     function pay(
         KyberNetwork _network,
         NanoLoanEngine _engine,
@@ -47,8 +60,7 @@ contract KyberGateway is RpSafeMath {
     }
 
     /**
-        @notice TODO
-        @dev TODO
+        @notice Performs the a trade on kyber network and lend a loan in nanoLoanEngine
 
         @param _network kyverNetwork market
         @param _engine the engine of RCN
@@ -100,8 +112,7 @@ contract KyberGateway is RpSafeMath {
     }
 
     /**
-        @notice TODO
-        @dev TODO
+        @notice Calcule the expected amount of ETH using the rate of kyber
 
         @param _network kyverNetwork market
         @param _calculatedEthAmount pre-calculate amount of ETH
