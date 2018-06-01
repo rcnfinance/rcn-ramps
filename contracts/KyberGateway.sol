@@ -30,30 +30,22 @@ contract KyberGateway is RpSafeMath {
         bytes _oracleData,
         uint _minChangeRCN
     ) public payable returns (bool) {
-        require(tx.gasprice <= _network.maxGasPrice(), "The gas price is too much");
-        require(_network.enabled(), "The network is down");
         require(msg.value > 0);
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
-        uint requiredRcn = _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _amount);
 
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
+        require(rcn.balanceOf(this) - initialBalance == boughtRCN);
+
+        uint requiredRcn = _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _amount);
         require(boughtRCN >= requiredRcn, "insufficient found");
 
         rcn.approve(address(_engine), requiredRcn);
         require(_engine.pay(_index, requiredRcn, msg.sender, _oracleData));
         rcn.approve(address(_engine), 0);
 
-        uint change = safeSubtract(boughtRCN, requiredRcn);
-
-        if(_minChangeRCN <= change){
-            change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
-            msg.sender.transfer(change);
-        }else{
-            require(rcn.transfer(msg.sender, change), "RCN transfer fail");
-        }
-
+        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)));
         require(rcn.balanceOf(this) == initialBalance);
 
         return true;
@@ -82,55 +74,46 @@ contract KyberGateway is RpSafeMath {
         bytes _oracleData,
         uint _minChangeRCN
     ) public payable returns (bool) {
-        require(tx.gasprice <= _network.maxGasPrice(), "The gas price is too much");
-        require(_network.enabled(), "The network is down");
         require(msg.value > 0);
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
 
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, this);
+        require(rcn.balanceOf(this) - initialBalance == boughtRCN);
 
         uint requiredRcn = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
         require(boughtRCN >= requiredRcn, "insufficient found");
 
         rcn.approve(address(_engine), requiredRcn);
         require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
+        rcn.approve(address(_engine), 0);
+
         require(_engine.transfer(msg.sender, _index), "fail transfer");
-
-        uint change = safeSubtract(boughtRCN, requiredRcn);
-        if(_minChangeRCN <= change){
-            change = _network.trade(rcn, change, ETH, this, 10 ** 30, 0, this);
-            msg.sender.transfer(change);
-        }else{
-            require(rcn.transfer(msg.sender, change), "RCN transfer fail");
-        }
-
+        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)));
         require(rcn.balanceOf(this) == initialBalance);
 
         return true;
     }
 
-    /**
-        @notice Calcule the expected amount of ETH using the rate of kyber
-
-        @param _network kyverNetwork market
-        @param _calculatedEthAmount pre-calculate amount of ETH
-        @param _requiredRcn the expected amount of RCN
-
-        @return the expected amount of ETH
-    */
-    function toETHAmount(
+    function rebuyAndReturn(
         KyberNetwork _network,
-        uint _calculatedEthAmount,
-        uint _requiredRcn,
-        NanoLoanEngine _engine
-    ) public view returns(uint){
-        Token rcn = _engine.rcn();
-        uint rate;
-        (rate, ) = _network.getExpectedRate(ETH, rcn, _calculatedEthAmount);
-
-        return (safeMult(10**18, _requiredRcn)/rate) + 1;// add one for the presicion
+        Token _rcn,
+        uint _minChangeRCN,
+        uint _change
+    ) internal returns (bool) {
+        if (_change != 0) {
+            if(_minChangeRCN < _change){
+                uint prevBalanceUser = msg.sender.balance;
+                _rcn.approve(address(_network), _change);
+                _change = _network.trade.value(0)(_rcn, _change, ETH, msg.sender, 10 ** 30, 0, this);
+                _rcn.approve(address(_network), 0);
+                require(msg.sender.balance - prevBalanceUser == _change);
+            }else{
+                require(_rcn.transfer(msg.sender, _change), "RCN transfer fail");
+            }
+        }
+        return true;
     }
 
     function getRequiredRcnLend(
