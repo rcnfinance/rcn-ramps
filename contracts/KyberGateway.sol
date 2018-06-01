@@ -8,6 +8,7 @@ import "./utils/RpSafeMath.sol";
 
 contract KyberGateway is RpSafeMath {
     ERC20 constant internal ETH = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
+    uint constant internal MAX_UINT = 2**256 - 1;
 
     /**
         @notice Performs the a trade on kyber network and pay an amount on loan in nanoLoanEngine
@@ -28,14 +29,15 @@ contract KyberGateway is RpSafeMath {
         uint _index,
         uint _amount,
         bytes _oracleData,
-        uint _minChangeRCN
+        uint _minChangeRCN,
+        uint _minConversionRate
     ) public payable returns (bool) {
         require(msg.value > 0);
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
 
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, 0);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, MAX_UINT, _minConversionRate, 0);
         require(rcn.balanceOf(this) - initialBalance == boughtRCN);
 
         uint requiredRcn = _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _amount);
@@ -72,14 +74,15 @@ contract KyberGateway is RpSafeMath {
         Cosigner _cosigner,
         bytes _cosignerData,
         bytes _oracleData,
-        uint _minChangeRCN
+        uint _minChangeRCN,
+        uint _minConversionRate
     ) public payable returns (bool) {
         require(msg.value > 0);
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
 
-        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, 10 ** 30, 0, this);
+        uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, MAX_UINT, _minConversionRate, this);
         require(rcn.balanceOf(this) - initialBalance == boughtRCN);
 
         uint requiredRcn = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
@@ -106,7 +109,7 @@ contract KyberGateway is RpSafeMath {
             if(_minChangeRCN < _change){
                 uint prevBalanceUser = msg.sender.balance;
                 _rcn.approve(address(_network), _change);
-                _change = _network.trade.value(0)(_rcn, _change, ETH, msg.sender, 10 ** 30, 0, this);
+                _change = _network.trade.value(0)(_rcn, _change, ETH, msg.sender, MAX_UINT, 0, this);
                 _rcn.approve(address(_network), 0);
                 require(msg.sender.balance - prevBalanceUser == _change);
             }else{
