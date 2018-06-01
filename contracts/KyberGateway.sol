@@ -85,7 +85,7 @@ contract KyberGateway is RpSafeMath {
         uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, MAX_UINT, _minConversionRate, this);
         require(rcn.balanceOf(this) - initialBalance == boughtRCN);
 
-        uint requiredRcn = getRequiredRcnLend(_engine, _index, _oracleData, _cosignerData);
+        uint requiredRcn = getRequiredRcnLend(_engine, _index, _cosignerData, _oracleData);
         require(boughtRCN >= requiredRcn, "insufficient found");
 
         rcn.approve(address(_engine), requiredRcn);
@@ -98,7 +98,16 @@ contract KyberGateway is RpSafeMath {
 
         return true;
     }
+    /**
+        @notice rebuy ETH and transfer to the sender or transfer the change on RCN to the sender
 
+        @param _network kyverNetwork market
+        @param _rcn RCN token
+        @param _minChangeRCN minimum repurchase change amount
+        @param _change amount of change on RCN of the previous trade
+
+        @return true if the trade was done successfully or if the transfer of RCN was done successfully
+    */
     function rebuyAndReturn(
         KyberNetwork _network,
         Token _rcn,
@@ -118,12 +127,22 @@ contract KyberGateway is RpSafeMath {
         }
         return true;
     }
+    /**
+        @notice get the require amount of RCN to performs a lend
 
+        @param _engine the engine of RCN
+        @param _index Index of the loan
+        @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
+            by the url exposed in the url() method of the oracle.
+        @param _cosignerData Data required by the cosigner to process the request.
+
+        @return require amount of RCN
+    */
     function getRequiredRcnLend(
         NanoLoanEngine _engine,
         uint _index,
-        bytes _oracleData,
-        bytes _cosignerData
+        bytes _cosignerData,
+        bytes _oracleData
     ) public returns(uint required){
         Cosigner cosigner = Cosigner(_engine.getCosigner(_index));
 
