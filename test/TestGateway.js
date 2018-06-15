@@ -309,6 +309,11 @@ contract('KyberGateway', function(accounts) {
         assert.equal((await rcnToken.balanceOf(kyberGate.address)).toNumber(), 0, "The balance of kyberGate should be 0 RCN");
         assert.equal(borrowerBal.toString(), rcnAmount.toString(), "Wrong borrower balance");
         assert.equal(reserveBal.plus(lenderBal).plus(borrowerBal).toString(), prevReserveBal.toString(), "The sum of balances should be 1000 RCN");
+
+        await kyberGate.pay(network.address, engine.address, loanId, loanAmountArg, [], highNumber, 0,
+          { value: toETHAmount(rcnAmount).mul(1.05), from: helpBorrower});
+
+        assert.equal((await engine.getStatus(loanId)).toNumber(), 2);
     });
 
     it("Simple test to KyberGateway pay() a loan", async() => {

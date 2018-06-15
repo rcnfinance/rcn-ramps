@@ -44,7 +44,7 @@ contract KyberGateway is RpSafeMath {
         require(boughtRCN >= requiredRcn, "insufficient found");
 
         rcn.approve(address(_engine), requiredRcn);
-        require(_engine.pay(_index, requiredRcn, msg.sender, _oracleData));
+        require(_engine.pay(_index, _amount, msg.sender, _oracleData));
         rcn.approve(address(_engine), 0);
 
         require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)));
