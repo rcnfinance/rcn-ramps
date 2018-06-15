@@ -337,7 +337,6 @@ contract('KyberGateway', function(accounts) {
 
         // check post balances
         let loanBal = (await engine.getLenderBalance(loanId)).toString();
-        let helpBorrowerBal = (await rcnToken.balanceOf(helpBorrower)).toString();
         assert.equal(loanBal, payAmount, "The balance of kyberGate should be 0 RCN");
     });
 
@@ -368,7 +367,6 @@ contract('KyberGateway', function(accounts) {
         await kyberGate.pay(network.address, engine.address, loanId, payAmount, [], 0, 0, { value: toETHAmount(payAmount), from: helpBorrower});
         // check post balances
         let loanBal = (await engine.getLenderBalance(loanId)).toString();
-        let helpBorrowerBal = (await rcnToken.balanceOf(helpBorrower)).toString();
         assert.equal(loanBal, payAmount, "The balance of kyberGate should be 0 RCN");
         assert.equal((await rcnToken.balanceOf(lender)).toString(), "0", "The balance of lender should be 0 RCN");
         assert.isAbove(prevETHBalance, (await web3.eth.getBalance(helpBorrower)).toString(), "The balance of lender should be above 0 ETH");
