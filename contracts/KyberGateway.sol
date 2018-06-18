@@ -32,23 +32,23 @@ contract KyberGateway is RpSafeMath {
         uint _minChangeRCN,
         uint _minConversionRate
     ) public payable returns (bool) {
-        require(msg.value > 0);
+        require(msg.value > 0, "msg.value its 0");
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
 
         uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, MAX_UINT, _minConversionRate, 0);
-        require(rcn.balanceOf(this) - initialBalance == boughtRCN);
+        require(rcn.balanceOf(this) - initialBalance == boughtRCN, "Kyber return wrong rcn amount");
 
         uint requiredRcn = _engine.convertRate(_engine.getOracle(_index), _engine.getCurrency(_index), _oracleData, _amount);
-        require(boughtRCN >= requiredRcn, "insufficient found");
+        require(boughtRCN >= requiredRcn, "insufficient rcn found");
 
         rcn.approve(address(_engine), requiredRcn);
-        require(_engine.pay(_index, _amount, msg.sender, _oracleData));
+        require(_engine.pay(_index, _amount, msg.sender, _oracleData), "pay engine fail");
         rcn.approve(address(_engine), 0);
 
-        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)));
-        require(rcn.balanceOf(this) == initialBalance);
+        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)), "rebuy fail");
+        require(rcn.balanceOf(this) == initialBalance, "Wrong final balance of rcn");
 
         return true;
     }
@@ -77,24 +77,24 @@ contract KyberGateway is RpSafeMath {
         uint _minChangeRCN,
         uint _minConversionRate
     ) public payable returns (bool) {
-        require(msg.value > 0);
+        require(msg.value > 0, "msg.value its 0");
 
         Token rcn = _engine.rcn();
         uint initialBalance = rcn.balanceOf(this);
 
         uint boughtRCN = _network.trade.value(msg.value)(ETH, msg.value, rcn, this, MAX_UINT, _minConversionRate, this);
-        require(rcn.balanceOf(this) - initialBalance == boughtRCN);
+        require(rcn.balanceOf(this) - initialBalance == boughtRCN, "Kyber return wrong rcn amount");
 
         uint requiredRcn = getRequiredRcnLend(_engine, _index, _cosignerData, _oracleData);
-        require(boughtRCN >= requiredRcn, "insufficient found");
+        require(boughtRCN >= requiredRcn, "insufficient rcn found");
 
         rcn.approve(address(_engine), requiredRcn);
-        require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail lend");
+        require(_engine.lend(_index, _oracleData, _cosigner, _cosignerData), "fail engine lend");
         rcn.approve(address(_engine), 0);
 
-        require(_engine.transfer(msg.sender, _index), "fail transfer");
-        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)));
-        require(rcn.balanceOf(this) == initialBalance);
+        require(_engine.transfer(msg.sender, _index), "fail rcn transfer");
+        require(rebuyAndReturn(_network, rcn, _minChangeRCN, safeSubtract(boughtRCN, requiredRcn)), "rebuy fail");
+        require(rcn.balanceOf(this) == initialBalance, "Wrong final balance of rcn");
 
         return true;
     }
@@ -120,9 +120,9 @@ contract KyberGateway is RpSafeMath {
                 _rcn.approve(address(_network), _change);
                 _change = _network.trade.value(0)(_rcn, _change, ETH, msg.sender, MAX_UINT, 0, this);
                 _rcn.approve(address(_network), 0);
-                require(msg.sender.balance - prevBalanceUser == _change);
+                require(msg.sender.balance - prevBalanceUser == _change, "Kyber return wrong rcn amount");
             }else{
-                require(_rcn.transfer(msg.sender, _change), "RCN transfer fail");
+                require(_rcn.transfer(msg.sender, _change), "Transfer rcn fail");
             }
         }
         return true;
