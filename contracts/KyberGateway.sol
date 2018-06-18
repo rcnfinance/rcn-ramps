@@ -145,7 +145,7 @@ contract KyberGateway is RpSafeMath {
         uint _index,
         bytes _cosignerData,
         bytes _oracleData
-    ) public returns(uint required){
+    ) internal returns(uint required){
         Cosigner cosigner = Cosigner(_engine.getCosigner(_index));
 
         if (cosigner != address(0)) {
