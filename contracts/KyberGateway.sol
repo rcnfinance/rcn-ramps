@@ -20,6 +20,7 @@ contract KyberGateway is RpSafeMath {
         @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
         @param _minChangeRCN minimum repurchase change amount
+        @param _minConversionRate min rate. Lower rate typically results in better success rate when the market is volatile
 
         @return true if the trade and pay was done successfully
     */
@@ -64,6 +65,7 @@ contract KyberGateway is RpSafeMath {
         @param _oracleData Data required by the oracle to return the rate, the content of this field must be provided
             by the url exposed in the url() method of the oracle.
         @param _minChangeRCN minimum repurchase change amount
+        @param _minConversionRate min rate. Lower rate typically results in better success rate when the market is volatile
 
         @return true if the trade and lend was done successfully
     */
