@@ -210,7 +210,15 @@ contract('KyberGateway', function(accounts) {
         assert.equal((await rcnToken.balanceOf(lender)).toString(), "0", "The balance of lender should be 0 RCN");
         assert.equal((await rcnToken.balanceOf(borrower)).toString(), "0", "The balance of borrower should be 0 RCN");
 
+        try { // try lend with high minConversion Rate
+          await kyberGate.lend(network.address, engine.address, loanId, 0x0, [], [], highNumber, new BigNumber(400000).mul(precisionUnits), { value: toETHAmount(rcnAmount), from: lender});
+          assert(false, "throw was expected in line above.")
+        } catch(e){
+          assert(Helper.isRevertErrorMessage(e), "expected throw but got: " + e);
+        }
+
         await kyberGate.lend(network.address, engine.address, loanId, 0x0, [], [], highNumber, 0, { value: toETHAmount(rcnAmount), from: lender});
+
         // check post balances
         let borrowerBal = await rcnToken.balanceOf(borrower);
         let lenderBal = await rcnToken.balanceOf(lender);
@@ -312,8 +320,8 @@ contract('KyberGateway', function(accounts) {
 
         await kyberGate.pay(network.address, engine.address, loanId, loanAmountArg, [], highNumber, 0,
           { value: toETHAmount(rcnAmount).mul(1.05), from: helpBorrower});
-
-        assert.equal((await engine.getStatus(loanId)).toNumber(), 2);
+          
+        assert.equal((await engine.getPaid(loanId)).toString(), loanAmountArg);
     });
 
     it("Simple test to KyberGateway pay() a loan", async() => {
@@ -402,8 +410,6 @@ function toETHAmount(rcnAmount) {
 
     return tokensToEther.mul(factorRaise).mul(rcnAmount).dividedBy(precisionUnits).round();
 }
-
-
 
 function addBps (rate, bps) {
   return (rate.mul(10000 + bps).div(10000));
