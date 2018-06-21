@@ -1,8 +1,8 @@
 pragma solidity ^0.4.19;
 
-import "./rcn/NanoLoanEngine.sol";
-import "./kyber/interfaces/ERC20Interface.sol";
-import "./kyber/KyberNetwork.sol";
+import "./kyber/interfaces/Token.sol";
+import "./kyber/interfaces/KyberNetworkInterface.sol";
+import "./rcn/interfaces/Engine.sol";
 import "./rcn/interfaces/Cosigner.sol";
 import "./utils/RpSafeMath.sol";
 
@@ -25,8 +25,8 @@ contract KyberGateway is RpSafeMath {
         @return true if the trade and pay was done successfully
     */
     function pay(
-        KyberNetwork _network,
-        NanoLoanEngine _engine,
+        KyberNetworkInterface _network,
+        Engine _engine,
         uint _index,
         uint _amount,
         bytes _oracleData,
@@ -70,8 +70,8 @@ contract KyberGateway is RpSafeMath {
         @return true if the trade and lend was done successfully
     */
     function lend(
-        KyberNetwork _network,
-        NanoLoanEngine _engine,
+        KyberNetworkInterface _network,
+        Engine _engine,
         uint _index,
         Cosigner _cosigner,
         bytes _cosignerData,
@@ -111,7 +111,7 @@ contract KyberGateway is RpSafeMath {
         @return true if the trade was done successfully or if the transfer of RCN was done successfully
     */
     function rebuyAndReturn(
-        KyberNetwork _network,
+        KyberNetworkInterface _network,
         Token _rcn,
         uint _minChangeRCN,
         uint _change
@@ -141,7 +141,7 @@ contract KyberGateway is RpSafeMath {
         @return require amount of RCN
     */
     function getRequiredRcnLend(
-        NanoLoanEngine _engine,
+        Engine _engine,
         uint _index,
         bytes _cosignerData,
         bytes _oracleData
