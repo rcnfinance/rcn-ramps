@@ -2,7 +2,7 @@ pragma solidity ^0.4.19;
 
 
 /* taking ideas from FirstBlood token */
-contract RpSafeMath {
+library RpSafeMath {         
     function safeAdd(uint256 x, uint256 y) internal pure returns(uint256) {
         uint256 z = x + y;
         require((z >= x) && (z >= y));

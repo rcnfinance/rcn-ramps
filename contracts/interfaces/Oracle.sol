@@ -1,6 +1,7 @@
 pragma solidity ^0.4.19;
 
-import "../../utils/Ownable.sol";
+import "./../utils/Ownable.sol";
+import "./Token.sol";
 
 /**
     @dev Defines the interface of a standard RCN oracle.
@@ -38,7 +39,7 @@ contract Oracle is Ownable {
     */
     function addCurrency(string ticker) public onlyOwner returns (bool) {
         bytes32 currency = encodeCurrency(ticker);
-        emit NewSymbol(currency);
+        NewSymbol(currency);
         supported[currency] = true;
         currencies.push(currency);
         return true;
@@ -53,7 +54,7 @@ contract Oracle is Ownable {
             o := mload(add(currency, 32))
         }
     }
-
+    
     /**
         @return the currency string from a encoded bytes32
     */
@@ -68,5 +69,5 @@ contract Oracle is Ownable {
             mstore(add(o, 32), b)
         }
     }
-
+    
 }

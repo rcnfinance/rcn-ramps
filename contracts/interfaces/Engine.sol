@@ -1,13 +1,10 @@
 pragma solidity ^0.4.19;
 
-import "./Oracle.sol";
-import "./Cosigner.sol";
-import "../../kyber/interfaces/Token.sol";
+import './Oracle.sol';
 
 contract Engine {
     uint256 public VERSION;
     string public VERSION_NAME;
-    Token public rcn;
 
     enum Status { initial, lent, paid, destroyed }
     struct Approbation {
@@ -35,8 +32,5 @@ contract Engine {
     function transfer(address to, uint256 index) public returns (bool);
     function takeOwnership(uint256 index) public returns (bool);
     function withdrawal(uint index, address to, uint256 amount) public returns (bool);
-    function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool);
-
-    function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public returns (uint256);
-    function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool);
+    function identifierToIndex(bytes32 signature) public view returns (uint256);
 }
