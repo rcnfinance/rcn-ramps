@@ -56,6 +56,15 @@ contract ConverterRamp {
 
             bought = convertSafe(converter, fromToken, rcn, optimalSell);
 
+            // Pay loan
+            require(
+                executeOptimalPay({
+                    params: loanParams,
+                    oracleData: oracleData,
+                    rcnToPay: bought
+                })
+            );
+
             require(
                 rebuyAndReturn({
                     converter: converter,
@@ -80,19 +89,16 @@ contract ConverterRamp {
         bytes cosignerData,
         uint256[3] memory convertRules
     ) public payable returns (bool) {
-        Token rcn = NanoLoanEngine(address(loanParams[0])).rcn();
+        Token rcn = NanoLoanEngine(address(loanParams[I_ENGINE])).rcn();
         uint256 initialBalance = rcn.balanceOf(this);
         uint256 requiredRcn = getRequiredRcnLend(loanParams, oracleData, cosignerData);
 
         uint256 bought;
         if(msg.value > 0){
+            uint256 prevBalance = rcn.balanceOf(this);
             bought = converter.convertFromETH.value(msg.value)(rcn, msg.value, 1);
-
-            // Lend loan
-            require(rcn.approve(address(loanParams[0]), bought));
-            require(executeLend(loanParams, oracleData, cosignerData));
-            require(rcn.approve(address(loanParams[0]), 0));
-            require(executeTransfer(loanParams, msg.sender));
+            require(bought == rcn.balanceOf(this) - prevBalance);
+            require(lendLoan(loanParams, rcn, bought, oracleData, cosignerData));
 
             // TODO rebuy
 
@@ -101,11 +107,7 @@ contract ConverterRamp {
             require(fromToken.transferFrom(msg.sender, this, optimalSell));
 
             bought = convertSafe(converter, fromToken, rcn, optimalSell);
-            // Lend loan
-            require(rcn.approve(address(loanParams[0]), bought));
-            require(executeLend(loanParams, oracleData, cosignerData));
-            require(rcn.approve(address(loanParams[0]), 0));
-            require(executeTransfer(loanParams, msg.sender));
+            require(lendLoan(loanParams, rcn, bought, oracleData, cosignerData));
 
             require(
                 rebuyAndReturn({
@@ -199,6 +201,20 @@ contract ConverterRamp {
         require(engine.pay(index, toPay, address(params[I_PAY_FROM]), oracleData));
         require(rcn.approve(engine, 0));
 
+        return true;
+    }
+
+    function lendLoan(
+        bytes32[3] memory loanParams,
+        Token rcn,
+        uint256 bought,
+        bytes oracleData,
+        bytes cosignerData
+    )internal returns(bool) {
+        require(rcn.approve(address(loanParams[I_ENGINE]), bought));
+        require(executeLend(loanParams, oracleData, cosignerData));
+        require(rcn.approve(address(loanParams[I_ENGINE]), 0));
+        require(executeTransfer(loanParams, msg.sender));
         return true;
     }
 
