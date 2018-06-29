@@ -16,6 +16,7 @@ const TestCosigner = artifacts.require  ('./test/rcn/TestCosigner.sol');
 const TestToken = artifacts.require('./test/TestToken.sol');
 
 const ConverterRamp = artifacts.require('./ConverterRamp.sol');
+const BancorProxy = artifacts.require('./BancorProxy.sol');
 
 //global variables
 //////////////////
@@ -23,14 +24,15 @@ const gasPrice = 10 ** 18;
 
 let rcnEngine;
 let converterRamp;
+let bancorProxy;
 
 // bancor converters
-let converter1;
-
+let converter;
 // tokens tokens
+let eth;
 let rcn;
 let tico;
-let smartToken1;
+let smartToken;
 
 // accounts
 let borrower;
@@ -72,18 +74,25 @@ contract('ConverterRamp', function(accounts) {
         let bancorNetworkId = await contractIds.BANCOR_NETWORK.call();
         await contractRegistry.registerAddress(bancorNetworkId, bancorNetwork.address);
         await bancorNetwork.setSignerAddress(signer);
-        // converter1 RCN-TICO
-        smartToken1 = await SmartToken.new('RCN TICO Token', 'RCNTICO', 18);
-        await smartToken1.issue(borrower, 6500000 * 10 **18);
-        converter1 = await BancorConverter.new(smartToken1.address, contractRegistry.address, 0, rcn.address, 250000);
-        await converter1.addConnector(tico.address, 250000, false);
-        await smartToken1.transferOwnership(converter1.address);
-        await converter1.acceptTokenOwnership();
+        // converter RCN-TICO
+        smartToken = await SmartToken.new('RCN TICO Token', 'RCNTICO', 18);
+        await smartToken.issue(borrower, 6500000 * 10 **18);
+        converter = await BancorConverter.new(smartToken.address, contractRegistry.address, 0, rcn.address, 250000);
+        await converter.addConnector(tico.address, 250000, false);
+        await smartToken.transferOwnership(converter.address);
+        await converter.acceptTokenOwnership();
+        // converter2 ETH-RCN
+        //eth = await EtherToken.new();
+        //await bancorNetwork.registerEtherToken(eth.address, true);
+        //await converter.addConnector(eth.address, 250000, false);
         // add balance
-        await rcn.createTokens(converter1.address, 2500000 * 10 **18);
-        await tico.createTokens(converter1.address, 6500000 * 10 **18);
+        await rcn.createTokens(converter.address, 2500000 * 10 **18);
+        await tico.createTokens(converter.address, 6500000 * 10 **18);
+        //await eth.deposit({ value: web3.toWei(1) });
         // Deploy ramp
         converterRamp = await ConverterRamp.new();
+        // Deploy proxy
+        bancorProxy = await BancorProxy.new(converter.address);
     });
 
     function toBytes32(source) {
@@ -129,7 +138,7 @@ contract('ConverterRamp', function(accounts) {
         ]
 
         console.log(await converterRamp.lend(
-            converter1.address,
+            bancorProxy.address,
             tico.address,
             lendLoanParams,
             [],
@@ -155,7 +164,7 @@ contract('ConverterRamp', function(accounts) {
         ]
 
         await converterRamp.pay(
-            converter1.address,
+            converter.address,
             tico.address,
             payLoanParams,
             [],
@@ -169,7 +178,7 @@ contract('ConverterRamp', function(accounts) {
     it("Should lend and pay using the ramp + oracle", async() => {
         const bancorOracle = await BancorOracle.new();
         await bancorOracle.setRcn(rcn.address);
-        await bancorOracle.addCurrencyConverter("TICO", tico.address, converter1.address);
+        await bancorOracle.addCurrencyConverter("TICO", tico.address, converter.address);
         const ticoCurrency = await bancorOracle.encodeCurrency("TICO");
 
         // Create a random loan
@@ -204,7 +213,7 @@ contract('ConverterRamp', function(accounts) {
         ]
 
         console.log(await converterRamp.lend(
-            converter1.address,
+            converter.address,
             tico.address,
             lendLoanParams,
             [],
@@ -230,7 +239,7 @@ contract('ConverterRamp', function(accounts) {
         ]
 
         await converterRamp.pay(
-            converter1.address,
+            converter.address,
             tico.address,
             payLoanParams,
             [],
@@ -244,7 +253,7 @@ contract('ConverterRamp', function(accounts) {
     it("Should lend and pay using the ramp + oracle + cosigner", async() => {
         const bancorOracle = await BancorOracle.new();
         await bancorOracle.setRcn(rcn.address);
-        await bancorOracle.addCurrencyConverter("TICO", tico.address, converter1.address);
+        await bancorOracle.addCurrencyConverter("TICO", tico.address, converter.address);
         const ticoCurrency = await bancorOracle.encodeCurrency("TICO");
 
         const testCosigner = await TestCosigner.new();
@@ -281,7 +290,7 @@ contract('ConverterRamp', function(accounts) {
         ]
 
         console.log(await converterRamp.lend(
-            converter1.address,
+            converter.address,
             tico.address,
             lendLoanParams,
             [],
