@@ -37,7 +37,7 @@ contract ConverterRamp {
 
         uint256 bought;
         if(msg.value > 0){
-            bought = converter.convertFromETH.value(msg.value)(rcn, msg.value, 1);
+            bought = converter.buy.value(msg.value)(rcn, msg.value, 1);
 
             // Pay loan
             require(
@@ -49,7 +49,7 @@ contract ConverterRamp {
             );
 
             // TODO rebuy
-
+            require(rcn.transfer(msg.sender, bought.safeSubtract(requiredRcn)));
         } else {
             uint256 optimalSell = getOptimalSell(converter, fromToken, rcn, requiredRcn, convertRules[I_MARGIN_SPEND]);
             require(fromToken.transferFrom(msg.sender, this, optimalSell));
@@ -101,7 +101,7 @@ contract ConverterRamp {
             require(lendLoan(loanParams, rcn, bought, oracleData, cosignerData));
 
             // TODO rebuy
-
+            require(rcn.transfer(msg.sender, bought.safeSubtract(requiredRcn)));
         } else {
             uint256 optimalSell = getOptimalSell(converter, fromToken, rcn, requiredRcn, convertRules[I_MARGIN_SPEND]);
             require(fromToken.transferFrom(msg.sender, this, optimalSell));
@@ -134,7 +134,7 @@ contract ConverterRamp {
         uint256[3] memory convertRules
     ) internal returns (bool) {
         uint256 threshold = convertRules[I_REBUY_THRESHOLD];
-        uint256 bought = 0;
+        uint256 bought;
         if (amount != 0) {
             if (amount > threshold) {
                 bought = convertSafe(converter, fromToken, toToken, amount);

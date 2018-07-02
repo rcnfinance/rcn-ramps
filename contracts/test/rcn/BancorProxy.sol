@@ -14,7 +14,7 @@ contract BancorProxy is TokenConverter {
         converter = _converter;
     }
 
-    function convertFromETH(Token _toToken, uint256 _fromAmount, uint256 _minReturn) public payable returns (uint256 amount){
+    function buy(Token _toToken, uint256 _fromAmount, uint256 _minReturn) public payable returns (uint256 amount){
         //convertPath = [_fromToken, IERC20Token(converter.token()), _toToken];
         //amount = converter.quickConvert.value(msg.value)(IERC20Token(_fromToken), IERC20Token(_toToken), _fromAmount, _minReturn);
         //require(_toToken.transfer(msg.sender, amount));
