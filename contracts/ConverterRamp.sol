@@ -96,7 +96,7 @@ contract ConverterRamp {
         uint256 bought;
         if(msg.value > 0){
             uint256 prevBalance = rcn.balanceOf(this);
-            bought = converter.convertFromETH.value(msg.value)(rcn, msg.value, 1);
+            bought = converter.buy.value(msg.value)(rcn, msg.value, 1);
             require(bought == rcn.balanceOf(this) - prevBalance);
             require(lendLoan(loanParams, rcn, bought, oracleData, cosignerData));
 
