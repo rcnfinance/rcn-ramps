@@ -48,10 +48,11 @@ contract('ConverterRampEth', function(accounts) {
         payer = accounts[2];
         signer = accounts[3];
         // Deploy BNT token
-        bnt = await TestToken.new("Not-Bancor Token", "BNT", 18, "1.0", 6000);
+        bnt = await SmartToken.new("Not-Bancor Token", "BNT", 18);
 
         // Deploy RCN token
         rcn = await TestToken.new("Ripio Credit Network", "RCN", 18, "1.1", 4000);
+
         // Deploy RCN Engine
         rcnEngine = await NanoLoanEngine.new(rcn.address);
 
@@ -75,6 +76,10 @@ contract('ConverterRampEth', function(accounts) {
         let bancorNetworkId = await contractIds.BANCOR_NETWORK.call();
         await contractRegistry.registerAddress(bancorNetworkId, bancorNetwork.address);
         await bancorNetwork.setSignerAddress(signer);
+
+        // Issue BNT Tokens
+        await bnt.issue(accounts[0], 6500000 * 10 **18);
+
         // converter RCN-BNT
         smartToken = await SmartToken.new('RCN BNT Token', 'RCN-BNT', 18);
         await smartToken.issue(borrower, 6500000 * 10 **18);
@@ -82,26 +87,29 @@ contract('ConverterRampEth', function(accounts) {
         await converter.addConnector(bnt.address, 250000, false);
         await smartToken.transferOwnership(converter.address);
         await converter.acceptTokenOwnership();
+        await rcn.createTokens(converter.address, 2500000 * 10 **18);
+        await bnt.transfer(converter.address, 3000000 * 10 **18);
         // converter BNT-ETH
-        smartTokenEth = await SmartToken.new('ETH BNT Token', 'ETH-BNT', 18);
-        converterEth = await BancorConverter.new(smartTokenEth.address, contractRegistry.address, 0, bnt.address, 250000);
+        // smartTokenEth = await SmartToken.new('ETH BNT Token', 'ETH-BNT', 18);
         ethToken = await EtherToken.new();
         await bancorNetwork.registerEtherToken(ethToken.address, true);
-        await converterEth.addConnector(ethToken.address, 250000, false);
-        await smartTokenEth.transferOwnership(converterEth.address);
+        converterEth = await BancorConverter.new(bnt.address, contractRegistry.address, 0, ethToken.address, 100000);
+        await bnt.transferOwnership(converterEth.address);
         await converterEth.acceptTokenOwnership();
-        // add balance
-        await rcn.createTokens(converter.address, 2500000 * 10 **18);
-        await bnt.createTokens(converter.address, 6500000 * 10 **18);
-        await bnt.createTokens(converterEth.address, 6500000 * 10 **18);
+        // await converterEth.addConnector(ethToken.address, 250000, false);
+        // // await smartTokenEth.transferOwnership(converterEth.address);
+        // // await converterEth.acceptTokenOwnership();
+        // // add balance
+        await bnt.transfer(converterEth.address, 3000000 * 10 **18);
         await ethToken.deposit({ value: web3.toWei(10), from: accounts[8] });
         await ethToken.transfer(converterEth.address, web3.toWei(10), {from: accounts[8]});
-        // Deploy ramp
+        // // Deploy ramp
         converterRamp = await ConverterRamp.new();
         // Deploy proxy
-        bancorProxy = await BancorProxy.new(ethToken.address, bnt.address);
+        bancorProxy = await BancorProxy.new(ethToken.address);
         await bancorProxy.setConverter(bnt.address, rcn.address, converter.address);
         await bancorProxy.setConverter(bnt.address, ethToken.address, converterEth.address);
+        await bancorProxy.setRouter(rcn.address, ethToken.address, bnt.address);
     });
 
     function toBytes32(source) {
@@ -132,9 +140,6 @@ contract('ConverterRampEth', function(accounts) {
         let loanId = 1;
         const eth_address = await converterRamp.ETH_ADDRESS();
 
-        // await bnt.createTokens(lender, 10000 * 10 ** 18);
-        // await bnt.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
-
         const lendLoanParams = [
             toBytes32(rcnEngine.address),
             toBytes32(loanId.toString(16)),
@@ -142,10 +147,21 @@ contract('ConverterRampEth', function(accounts) {
         ]
 
         const convertParams = [
-            50,
+            1000001,
             0,
-            0
+            10 ** 9
         ]
+
+        let sendEth = await converterRamp.requiredLendSell(
+            bancorProxy.address,
+            eth_address,
+            lendLoanParams,
+            [],
+            [],
+            convertParams
+        );
+
+        sendEth = sendEth;
 
         await converterRamp.lend(
             bancorProxy.address,
@@ -156,16 +172,13 @@ contract('ConverterRampEth', function(accounts) {
             convertParams,
             {
                 from: lender,
-                value: 10 * 10 ** 18
+                value: sendEth
             }
         );
 
         assert.equal(await bnt.balanceOf(converterRamp.address), 0);
-        assert.equal(await rcn.balanceOf(converterRamp.address), 0);
+        assert.equal((await rcn.balanceOf(converterRamp.address)).toFixed(0), 0);
         assert.equal(await rcnEngine.ownerOf(loanId), lender);
-
-        await bnt.createTokens(payer, 10000 * 10 ** 18);
-        await bnt.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
 
         const payLoanParams = [
             toBytes32(rcnEngine.address),
@@ -174,18 +187,26 @@ contract('ConverterRampEth', function(accounts) {
             toBytes32(payer)
         ]
 
+        sendEth = await converterRamp.requiredPaySell(
+            bancorProxy.address,
+            eth_address,
+            payLoanParams,
+            [],
+            convertParams
+        );
+
         await converterRamp.pay(
-            converter.address,
-            bnt.address,
+            bancorProxy.address,
+            eth_address,
             payLoanParams,
             [],
             convertParams,
             {
-                from: payer
+                from: payer,
+                value: sendEth
             }
         );
-    })
-
+    });
     it("Should lend and pay using the ramp + oracle", async() => {
         const bancorOracle = await BancorOracle.new();
         await bancorOracle.setRcn(rcn.address);
@@ -207,9 +228,7 @@ contract('ConverterRampEth', function(accounts) {
         );
 
         let loanId = 1;
-
-        await bnt.createTokens(lender, 10000 * 10 ** 18);
-        await bnt.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
+        const eth_address = await converterRamp.ETH_ADDRESS();
 
         const lendLoanParams = [
             toBytes32(rcnEngine.address),
@@ -218,29 +237,38 @@ contract('ConverterRampEth', function(accounts) {
         ]
 
         const convertParams = [
-            200,
+            1000001,
             0,
-            0
+            10 ** 9
         ]
 
+        let sendEth = await converterRamp.requiredLendSell(
+            bancorProxy.address,
+            eth_address,
+            lendLoanParams,
+            [],
+            [],
+            convertParams
+        );
+
+        sendEth = sendEth;
+
         await converterRamp.lend(
-            converter.address,
-            bnt.address,
+            bancorProxy.address,
+            eth_address,
             lendLoanParams,
             [],
             [],
             convertParams,
             {
-                from: lender
+                from: lender,
+                value: sendEth
             }
         );
 
         assert.equal(await bnt.balanceOf(converterRamp.address), 0);
-        assert.equal(await rcn.balanceOf(converterRamp.address), 0);
+        assert.equal((await rcn.balanceOf(converterRamp.address)).toFixed(0), 0);
         assert.equal(await rcnEngine.ownerOf(loanId), lender);
-
-        await bnt.createTokens(payer, 10000 * 10 ** 18);
-        await bnt.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
 
         const payLoanParams = [
             toBytes32(rcnEngine.address),
@@ -249,14 +277,23 @@ contract('ConverterRampEth', function(accounts) {
             toBytes32(payer)
         ]
 
+        sendEth = await converterRamp.requiredPaySell(
+            bancorProxy.address,
+            eth_address,
+            payLoanParams,
+            [],
+            convertParams
+        );
+
         await converterRamp.pay(
-            converter.address,
-            bnt.address,
+            bancorProxy.address,
+            eth_address,
             payLoanParams,
             [],
             convertParams,
             {
-                from: payer
+                from: payer,
+                value: sendEth
             }
         );
     })
@@ -284,31 +321,72 @@ contract('ConverterRampEth', function(accounts) {
         );
 
         let loanId = 1;
-
-        await bnt.createTokens(lender, 10000 * 10 ** 18);
-        await bnt.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
+        const eth_address = await converterRamp.ETH_ADDRESS();
 
         const lendLoanParams = [
             toBytes32(rcnEngine.address),
             toBytes32(loanId.toString(16)),
-            toBytes32(testCosigner.address)
+            toBytes32(0x0)
         ]
 
         const convertParams = [
-            200,
+            1000001,
             0,
-            0
+            10 ** 9
         ]
 
+        let sendEth = await converterRamp.requiredLendSell(
+            bancorProxy.address,
+            eth_address,
+            lendLoanParams,
+            [],
+            [],
+            convertParams
+        );
+
+        sendEth = sendEth;
+
         await converterRamp.lend(
-            converter.address,
-            bnt.address,
+            bancorProxy.address,
+            eth_address,
             lendLoanParams,
             [],
             [],
             convertParams,
             {
-                from: lender
+                from: lender,
+                value: sendEth
+            }
+        );
+
+        assert.equal(await bnt.balanceOf(converterRamp.address), 0);
+        assert.equal((await rcn.balanceOf(converterRamp.address)).toFixed(0), 0);
+        assert.equal(await rcnEngine.ownerOf(loanId), lender);
+
+        const payLoanParams = [
+            toBytes32(rcnEngine.address),
+            toBytes32(loanId.toString(16)),
+            toBytes32((100 * 10 ** 18).toString(16)),
+            toBytes32(payer)
+        ]
+
+        sendEth = await converterRamp.requiredPaySell(
+            bancorProxy.address,
+            eth_address,
+            payLoanParams,
+            [],
+            convertParams
+        );
+
+        await converterRamp.pay(
+            bancorProxy.address,
+            eth_address,
+            payLoanParams,
+            [],
+            convertParams,
+            {
+                from: payer,
+                value: sendEth
             }
         );
 
@@ -317,3 +395,4 @@ contract('ConverterRampEth', function(accounts) {
         assert.equal(await rcnEngine.ownerOf(loanId), lender);
     })
 })
+//

@@ -88,7 +88,7 @@ contract('ConverterRamp', function(accounts) {
         // Deploy ramp
         converterRamp = await ConverterRamp.new();
         // Deploy proxy
-        bancorProxy = await BancorProxy.new(0x0, 0x0);
+        bancorProxy = await BancorProxy.new(0x0);
         await bancorProxy.setConverter(rcn.address, tico.address, converter.address);
     });
 
