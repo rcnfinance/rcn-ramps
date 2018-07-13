@@ -13,18 +13,18 @@ contract ConverterRamp is Ownable {
 
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
     uint256 public constant AUTO_MARGIN = 1000001;
-
-    uint256 public constant I_MARGIN_SPEND = 0;
-    uint256 public constant I_MAX_SPEND = 1;
-    uint256 public constant I_REBUY_THRESHOLD = 2;
-
-    uint256 public constant I_ENGINE = 0;
-    uint256 public constant I_INDEX = 1;
-
-    uint256 public constant I_PAY_AMOUNT = 2;
-    uint256 public constant I_PAY_FROM = 3;
-
-    uint256 public constant I_LEND_COSIGNER = 2;
+    // index of convert rules for pay and lend
+    uint256 public constant I_MARGIN_SPEND = 0;    // Extra sell percent of amount, 100.000 = 100%
+    uint256 public constant I_MAX_SPEND = 1;       // Max spend on perform a sell, 0 = maximum
+    uint256 public constant I_REBUY_THRESHOLD = 2; // Threshold of rebuy change, 0 if want to rebuy always
+    // index of loan parameters for pay and lend
+    uint256 public constant I_ENGINE = 0;     // NanoLoanEngine contract
+    uint256 public constant I_INDEX = 1;      // Loan index on Loans array of NanoLoanEngine
+    // for pay
+    uint256 public constant I_PAY_AMOUNT = 2; // Amount to pay of the loan
+    uint256 public constant I_PAY_FROM = 3;   // The identity of the payer of loan
+    // for lend
+    uint256 public constant I_LEND_COSIGNER = 2; // Cosigner contract
 
     event RequiredRebuy(address token, uint256 amount);
     event Return(address token, address to, uint256 amount);
