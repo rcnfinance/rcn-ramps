@@ -83,7 +83,7 @@ contract ConverterRamp is Ownable {
         bytes cosignerData,
         uint256[3] convertRules
     ) external view returns (uint256) {
-        Token rcn = NanoLoanEngine(address(loanParams[0])).rcn();
+        Token rcn = NanoLoanEngine(address(loanParams[I_ENGINE])).rcn();
         return getOptimalSell(
             converter,
             fromToken,
@@ -100,7 +100,7 @@ contract ConverterRamp is Ownable {
         bytes oracleData,
         uint256[3] convertRules
     ) external view returns (uint256) {
-        Token rcn = NanoLoanEngine(address(loanParams[0])).rcn();
+        Token rcn = NanoLoanEngine(address(loanParams[I_ENGINE])).rcn();
         return getOptimalSell(
             converter,
             fromToken,
@@ -118,7 +118,7 @@ contract ConverterRamp is Ownable {
         bytes cosignerData,
         uint256[3] convertRules
     ) external payable returns (bool) {
-        Token rcn = NanoLoanEngine(address(loanParams[0])).rcn();
+        Token rcn = NanoLoanEngine(address(loanParams[I_ENGINE])).rcn();
         uint256 initialBalance = rcn.balanceOf(this);
         uint256 requiredRcn = getRequiredRcnLend(loanParams, oracleData, cosignerData);
         emit RequiredRcn(requiredRcn);
@@ -126,13 +126,13 @@ contract ConverterRamp is Ownable {
         uint256 optimalSell = getOptimalSell(converter, fromToken, rcn, requiredRcn, convertRules[I_MARGIN_SPEND]);
         emit OptimalSell(fromToken, optimalSell);
 
-        pullAmount(fromToken, optimalSell);      
+        pullAmount(fromToken, optimalSell);
         uint256 bought = convertSafe(converter, fromToken, rcn, optimalSell);
 
         // Lend loan
-        require(rcn.approve(address(loanParams[0]), bought));
+        require(rcn.approve(address(loanParams[I_ENGINE]), bought));
         require(executeLend(loanParams, oracleData, cosignerData));
-        require(rcn.approve(address(loanParams[0]), 0));
+        require(rcn.approve(address(loanParams[I_ENGINE]), 0));
         require(executeTransfer(loanParams, msg.sender));
 
         require(
@@ -201,9 +201,9 @@ contract ConverterRamp is Ownable {
 
         uint256 maxSpend = convertRules[I_MAX_SPEND];
         require(bought.safeAdd(spentAmount) <= maxSpend || maxSpend == 0);
-        
+
         return true;
-    } 
+    }
 
     function getOptimalSell(
         TokenConverter converter,
@@ -276,7 +276,7 @@ contract ConverterRamp is Ownable {
         require(rcn.approve(engine, rcnToPay));
         require(engine.pay(index, toPay, address(params[I_PAY_FROM]), oracleData));
         require(rcn.approve(engine, 0));
-        
+
         return true;
     }
 
@@ -294,7 +294,7 @@ contract ConverterRamp is Ownable {
         bytes32[3] memory params,
         address to
     ) internal returns (bool) {
-        return NanoLoanEngine(address(params[0])).transfer(to, uint256(params[1]));
+        return NanoLoanEngine(address(params[I_ENGINE])).transfer(to, uint256(params[1]));
     }
 
     function applyRate(
