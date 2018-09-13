@@ -57,7 +57,8 @@ contract ConverterRamp is Ownable {
                 params: loanParams,
                 oracleData: oracleData,
                 rcnToPay: bought
-            })
+            }),
+            "Error paying the loan"
         );
 
         require(
@@ -68,10 +69,11 @@ contract ConverterRamp is Ownable {
                 amount: rcn.balanceOf(this) - initialBalance,
                 spentAmount: optimalSell,
                 convertRules: convertRules
-            })
+            }),
+            "Error rebuying the tokens"
         );
 
-        require(rcn.balanceOf(this) == initialBalance);
+        require(rcn.balanceOf(this) == initialBalance, "Converter balance has incremented");
         return true;
     }
 
@@ -131,9 +133,9 @@ contract ConverterRamp is Ownable {
 
         // Lend loan
         require(rcn.approve(address(loanParams[0]), bought));
-        require(executeLend(loanParams, oracleData, cosignerData));
+        require(executeLend(loanParams, oracleData, cosignerData), "Error lending the loan");
         require(rcn.approve(address(loanParams[0]), 0));
-        require(executeTransfer(loanParams, msg.sender));
+        require(executeTransfer(loanParams, msg.sender), "Error transfering the loan");
 
         require(
             rebuyAndReturn({
@@ -143,7 +145,8 @@ contract ConverterRamp is Ownable {
                 amount: rcn.balanceOf(this) - initialBalance,
                 spentAmount: optimalSell,
                 convertRules: convertRules
-            })
+            }),
+            "Error rebuying the tokens"
         );
 
         require(rcn.balanceOf(this) == initialBalance);
@@ -155,12 +158,12 @@ contract ConverterRamp is Ownable {
         uint256 amount
     ) private {
         if (token == ETH_ADDRESS) {
-            require(msg.value >= amount);
+            require(msg.value >= amount, "Error pulling ETH amount");
             if (msg.value > amount) {
                 msg.sender.transfer(msg.value - amount);
             }
         } else {
-            require(token.transferFrom(msg.sender, this, amount));
+            require(token.transferFrom(msg.sender, this, amount), "Error pulling Token amount");
         }
     }
 
@@ -172,7 +175,7 @@ contract ConverterRamp is Ownable {
         if (token == ETH_ADDRESS) {
             to.transfer(amount);
         } else {
-            require(token.transfer(to, amount));
+            require(token.transfer(to, amount), "Error sending tokens");
         }
     }
 
@@ -200,7 +203,7 @@ contract ConverterRamp is Ownable {
         }
 
         uint256 maxSpend = convertRules[I_MAX_SPEND];
-        require(bought.safeAdd(spentAmount) <= maxSpend || maxSpend == 0);
+        require(spentAmount.safeSubtract(bought) <= maxSpend || maxSpend == 0, "Max spend exceeded");
         
         return true;
     } 
@@ -245,7 +248,10 @@ contract ConverterRamp is Ownable {
         uint256 prevBalance = toToken != ETH_ADDRESS ? toToken.balanceOf(this) : address(this).balance;
         uint256 sendEth = fromToken == ETH_ADDRESS ? amount : 0;
         uint256 boughtAmount = converter.convert.value(sendEth)(fromToken, toToken, amount, 1);
-        require(boughtAmount == (toToken != ETH_ADDRESS ? toToken.balanceOf(this) : address(this).balance) - prevBalance);
+        require(
+            boughtAmount == (toToken != ETH_ADDRESS ? toToken.balanceOf(this) : address(this).balance) - prevBalance,
+            "Bought amound does does not match"
+        );
         if (fromToken != ETH_ADDRESS) require(fromToken.approve(converter, 0));
         return boughtAmount;
     }
@@ -274,7 +280,7 @@ contract ConverterRamp is Ownable {
 
         Token rcn = engine.rcn();
         require(rcn.approve(engine, rcnToPay));
-        require(engine.pay(index, toPay, address(params[I_PAY_FROM]), oracleData));
+        require(engine.pay(index, toPay, address(params[I_PAY_FROM]), oracleData), "Error paying the loan");
         require(rcn.approve(engine, 0));
         
         return true;
@@ -318,7 +324,7 @@ contract ConverterRamp is Ownable {
         }
         required += engine.convertRate(engine.getOracle(index), engine.getCurrency(index), oracleData, engine.getAmount(index));
     }
-
+    
     function getRequiredRcnPay(
         bytes32[4] memory params,
         bytes oracleData

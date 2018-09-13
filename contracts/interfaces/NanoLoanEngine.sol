@@ -13,4 +13,5 @@ interface NanoLoanEngine {
     function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public view returns (uint256);
     function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool);
     function transfer(address to, uint256 index) public returns (bool);
+    function getPendingAmount(uint256 index) public returns (uint256);
 }
