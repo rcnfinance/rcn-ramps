@@ -74,6 +74,7 @@ contract('ConverterRamp', function(accounts) {
         let bancorNetworkId = await contractIds.BANCOR_NETWORK.call();
         await contractRegistry.registerAddress(bancorNetworkId, bancorNetwork.address);
         await bancorNetwork.setSignerAddress(signer);
+        
         // converter RCN-TICO
         smartToken = await SmartToken.new('RCN TICO Token', 'RCNTICO', 18);
         await smartToken.issue(borrower, 6500000 * 10 **18);
@@ -81,6 +82,7 @@ contract('ConverterRamp', function(accounts) {
         await converter.addConnector(tico.address, 250000, false);
         await smartToken.transferOwnership(converter.address);
         await converter.acceptTokenOwnership();
+        
         // add balance
         await rcn.createTokens(converter.address, 2500000 * 10 **18);
         await tico.createTokens(converter.address, 6500000 * 10 **18);
@@ -184,8 +186,8 @@ contract('ConverterRamp', function(accounts) {
             borrower, // Borrower of the loan (caller of this method)
             ticoCurrency, // Currency of the loan, TICO
             web3.toWei(500), // Requested 500 TICO
-            20,
-            30,
+            2000000,
+            3000000,
             86400 * 90, // Duration of the loan, 6 months
             0, // Payment can start right away
             10 ** 40, // This request never expires
@@ -203,8 +205,8 @@ contract('ConverterRamp', function(accounts) {
             toBytes32(0x0)
         ]
 
-        const convertParams = [
-            200,
+        let convertParams = [
+            50,
             0,
             0
         ]
@@ -228,7 +230,7 @@ contract('ConverterRamp', function(accounts) {
         await tico.createTokens(payer, 10000 * 10 ** 18);
         await tico.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
 
-        const payLoanParams = [
+        let payLoanParams = [
             toBytes32(rcnEngine.address),
             toBytes32(loanId.toString(16)),
             toBytes32((100 * 10 ** 18).toString(16)),
@@ -245,6 +247,43 @@ contract('ConverterRamp', function(accounts) {
                 from: payer
             }
         );
+
+        // Pay the total amount of the loan
+        web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [10], id: 0});
+
+        let pending = (await rcnEngine.getPendingAmount.call(loanId)) * 5.05;
+
+        payLoanParams = [
+            toBytes32(rcnEngine.address),
+            toBytes32(loanId.toString(16)),
+            toBytes32((pending).toString(16)),
+            toBytes32(payer)
+        ]
+
+        convertParams = [
+            50,
+            // 0,
+            ((pending) * (100000 + 50)) / 100000,
+            0
+        ]
+
+        await converterRamp.pay(
+            converter.address,
+            tico.address,
+            payLoanParams,
+            [],
+            convertParams,
+            {
+                from: payer
+            }
+        );
+        
+        try {
+            pending = await rcnEngine.getPendingAmount.call(loanId);
+            assert.equal(pending.toFixed(0), 0);
+        } catch (e){}
+
+        assert.equal(false, true)
     })
 
     it("Should lend and pay using the ramp + oracle + cosigner", async() => {
