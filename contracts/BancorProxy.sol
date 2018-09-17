@@ -146,12 +146,19 @@ contract BancorProxy is TokenConverter, Ownable {
         return amount;
     } 
 
-    function sendTransaction(
-        address to,
-        uint256 value,
-        bytes data
+    function withdrawTokens(
+        Token _token,
+        address _to,
+        uint256 _amount
     ) external onlyOwner returns (bool) {
-        return to.call.value(value)(data);
+        return _token.transfer(_to, _amount);
+    }
+
+    function withdrawEther(
+        address _to,
+        uint256 _amount
+    ) external onlyOwner {
+        _to.transfer(_amount);
     }
 
     function() external payable {}
