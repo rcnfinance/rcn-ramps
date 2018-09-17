@@ -132,9 +132,9 @@ contract ConverterRamp is Ownable {
         uint256 bought = convertSafe(converter, fromToken, rcn, optimalSell);
 
         // Lend loan
-        require(rcn.approve(address(loanParams[0]), bought));
+        require(rcn.approve(address(loanParams[0]), bought), "Error approving lend token transfer");
         require(executeLend(loanParams, oracleData, cosignerData), "Error lending the loan");
-        require(rcn.approve(address(loanParams[0]), 0));
+        require(rcn.approve(address(loanParams[0]), 0), "Error removing approve");
         require(executeTransfer(loanParams, msg.sender), "Error transfering the loan");
 
         require(
@@ -149,7 +149,7 @@ contract ConverterRamp is Ownable {
             "Error rebuying the tokens"
         );
 
-        require(rcn.balanceOf(this) == initialBalance);
+        require(rcn.balanceOf(this) == initialBalance, "The contract balance should not change");
         return true;
     }
 
@@ -244,7 +244,7 @@ contract ConverterRamp is Ownable {
         Token toToken,
         uint256 amount
     ) internal returns (uint256 bought) {
-        if (fromToken != ETH_ADDRESS) require(fromToken.approve(converter, amount));
+        if (fromToken != ETH_ADDRESS) require(fromToken.approve(converter, amount), "Error approving token transfer");
         uint256 prevBalance = toToken != ETH_ADDRESS ? toToken.balanceOf(this) : address(this).balance;
         uint256 sendEth = fromToken == ETH_ADDRESS ? amount : 0;
         uint256 boughtAmount = converter.convert.value(sendEth)(fromToken, toToken, amount, 1);
@@ -252,7 +252,7 @@ contract ConverterRamp is Ownable {
             boughtAmount == (toToken != ETH_ADDRESS ? toToken.balanceOf(this) : address(this).balance) - prevBalance,
             "Bought amound does does not match"
         );
-        if (fromToken != ETH_ADDRESS) require(fromToken.approve(converter, 0));
+        if (fromToken != ETH_ADDRESS) require(fromToken.approve(converter, 0), "Error removing token approve");
         return boughtAmount;
     }
 
@@ -279,9 +279,9 @@ contract ConverterRamp is Ownable {
         }
 
         Token rcn = engine.rcn();
-        require(rcn.approve(engine, rcnToPay));
+        require(rcn.approve(engine, rcnToPay), "Error on payment approve");
         require(engine.pay(index, toPay, address(params[I_PAY_FROM]), oracleData), "Error paying the loan");
-        require(rcn.approve(engine, 0));
+        require(rcn.approve(engine, 0), "Error removing the payment approve");
         
         return true;
     }
@@ -306,7 +306,7 @@ contract ConverterRamp is Ownable {
     function applyRate(
         uint256 amount,
         uint256 rate
-    ) pure internal returns (uint256) {
+    ) internal pure returns (uint256) {
         return amount.safeMult(rate) / 10 ** 18;
     }
 
@@ -314,7 +314,7 @@ contract ConverterRamp is Ownable {
         bytes32[3] memory params,
         bytes oracleData,
         bytes cosignerData
-    ) internal returns (uint256 required) {
+    ) internal view returns (uint256 required) {
         NanoLoanEngine engine = NanoLoanEngine(address(params[I_ENGINE]));
         uint256 index = uint256(params[I_INDEX]);
         Cosigner cosigner = Cosigner(address(params[I_LEND_COSIGNER]));
@@ -328,7 +328,7 @@ contract ConverterRamp is Ownable {
     function getRequiredRcnPay(
         bytes32[4] memory params,
         bytes oracleData
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         NanoLoanEngine engine = NanoLoanEngine(address(params[I_ENGINE]));
         uint256 index = uint256(params[I_INDEX]);
         uint256 amount = uint256(params[I_PAY_AMOUNT]);
