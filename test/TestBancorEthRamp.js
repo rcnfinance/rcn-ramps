@@ -13,7 +13,7 @@ const NanoLoanEngine = artifacts.require('./vendors/rcn/NanoLoanEngine.sol');
 const BancorOracle = artifacts.require  ('./vendors/rcn/BancorOracle.sol');
 const TestCosigner = artifacts.require  ('./vendors/rcn/TestCosigner.sol');
 
-const TestToken = artifacts.require('./vendors/rcn/TestToken.sol');
+const TestToken = artifacts.require('./vendors/TestToken.sol');
 
 const ConverterRamp = artifacts.require('./ConverterRamp.sol');
 const BancorProxy = artifacts.require('./BancorProxy.sol');

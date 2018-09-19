@@ -7,28 +7,24 @@ import "./utils/Ownable.sol";
 
 contract KyberNetworkTokenProxy is TokenConverter, Ownable {
       
-    event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
-
     mapping(address => mapping(address => KyberNetworkProxy)) public converterOf;
-
     Token ethToken;
+
+    event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
 
     constructor(Token _ethToken) public {
         ethToken = _ethToken;
     }
 
-    function setConverter(
-        Token _token1,
-        Token _token2,
-        KyberNetworkProxy _converter
-    ) public onlyOwner returns (bool) {
-        converterOf[_token1][_token2] = _converter;
-        converterOf[_token2][_token1] = _converter;
-        uint256 approve = uint256(0) - 1;
-        require(_token1.approve(_converter, approve), "Error approving transfer token 1");
-        require(_token2.approve(_converter, approve), "Error approving transfer token 2");
-
-        return true;
+    function getReturn(
+        Token srcToken, 
+        Token destToken, 
+        uint256 srcQty
+    ) external view returns (uint256) {
+        uint256 amount;
+        KyberNetworkProxy converter = converterOf[srcToken][destToken];
+        (amount,) = converter.getExpectedRate(ERC20(srcToken), ERC20(destToken), srcQty);
+        return amount;
     }
 
     function convert(
@@ -105,6 +101,20 @@ contract KyberNetworkTokenProxy is TokenConverter, Ownable {
         uint256 _amount
     ) external onlyOwner {
         _to.transfer(_amount);
+    }
+
+    function setConverter(
+        Token _token1,
+        Token _token2,
+        KyberNetworkProxy _converter
+    ) public onlyOwner returns (bool) {
+        converterOf[_token1][_token2] = _converter;
+        converterOf[_token2][_token1] = _converter;
+        uint256 approve = uint256(0) - 1;
+        require(_token1.approve(_converter, approve), "Error approving transfer token 1");
+        require(_token2.approve(_converter, approve), "Error approving transfer token 2");
+
+        return true;
     }
 
     function() external payable {}

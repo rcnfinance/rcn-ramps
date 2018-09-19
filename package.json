@@ -5,9 +5,6 @@
   "directories": {
     "test": "test"
   },
-  "scripts": {
-    "test": "node --inspect-brk ./node_modules/truffle-core/cli.js test test/TestGateway.js"
-  },
   "author": "",
   "license": "ISC",
   "description": "",
