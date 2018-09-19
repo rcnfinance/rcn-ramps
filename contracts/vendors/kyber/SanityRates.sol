@@ -1,17 +1,17 @@
 pragma solidity ^0.4.18;
 
 
-import "./interfaces/ERC20Interface.sol";
+import "./ERC20Interface.sol";
 import "./Withdrawable.sol";
 import "./Utils.sol";
-import "./interfaces/SanityRatesInterface.sol";
+import "./SanityRatesInterface.sol";
 
 
 contract SanityRates is SanityRatesInterface, Withdrawable, Utils {
     mapping(address=>uint) public tokenRate;
     mapping(address=>uint) public reasonableDiffInBps;
 
-    constructor(address _admin) public {
+    function SanityRates(address _admin) public {
         require(_admin != address(0));
         admin = _admin;
     }

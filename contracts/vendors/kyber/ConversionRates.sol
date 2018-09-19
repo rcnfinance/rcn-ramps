@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
 
 
-import "./interfaces/ERC20Interface.sol";
+import "./ERC20Interface.sol";
 import "./VolumeImbalanceRecorder.sol";
 import "./Utils.sol";
-import "./interfaces/ConversionRatesInterface.sol";
+import "./ConversionRatesInterface.sol";
 
 contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, Utils {
 
@@ -54,7 +54,7 @@ contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, U
     int  constant internal MAX_BPS_ADJUSTMENT = 10 ** 11; // 1B %
     int  constant internal MIN_BPS_ADJUSTMENT = -100 * 100; // cannot go down by more than 100%
 
-    constructor(address _admin) public VolumeImbalanceRecorder(_admin)
+    function ConversionRates(address _admin) public VolumeImbalanceRecorder(_admin)
         { } // solhint-disable-line no-empty-blocks
 
     function addToken(ERC20 token) public onlyAdmin {
@@ -189,7 +189,7 @@ contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, U
 
         if (rateUpdateBlock == 0) rateUpdateBlock = getRateUpdateBlock(token);
 
-        addImbalance(token, buyAmount, rateUpdateBlock, currentBlock);
+        return addImbalance(token, buyAmount, rateUpdateBlock, currentBlock);
     }
 
     /* solhint-disable function-max-lines */
@@ -222,6 +222,7 @@ contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, U
             rateUpdate = getRateByteFromCompactData(compactData, token, true);
             extraBps = int(rateUpdate) * 10;
             rate = addBps(rate, extraBps);
+
             // compute token qty
             qty = getTokenQty(token, rate, qty);
             imbalanceQty = int(qty);
@@ -242,6 +243,7 @@ contract ConversionRates is ConversionRatesInterface, VolumeImbalanceRecorder, U
             rateUpdate = getRateByteFromCompactData(compactData, token, false);
             extraBps = int(rateUpdate) * 10;
             rate = addBps(rate, extraBps);
+
             // compute token qty
             imbalanceQty = -1 * int(qty);
             totalImbalance += imbalanceQty;

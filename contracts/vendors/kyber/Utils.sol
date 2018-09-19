@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 
-import "./interfaces/ERC20Interface.sol";
+import "./ERC20Interface.sol";
 
 
 /// @title Kyber constants contract
@@ -47,7 +47,7 @@ contract Utils {
     function calcSrcQty(uint dstQty, uint srcDecimals, uint dstDecimals, uint rate) internal pure returns(uint) {
         require(dstQty <= MAX_QTY);
         require(rate <= MAX_RATE);
-
+        
         //source quantity is rounded up. to avoid dest quantity being too low.
         uint numerator;
         uint denominator;

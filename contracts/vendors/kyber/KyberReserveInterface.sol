@@ -4,7 +4,7 @@ pragma solidity ^0.4.18;
 import "./ERC20Interface.sol";
 
 /// @title Kyber Reserve contract
-contract KyberReserveInterface {
+interface KyberReserveInterface {
 
     function trade(
         ERC20 srcToken,
@@ -18,5 +18,5 @@ contract KyberReserveInterface {
         payable
         returns(bool);
 
-    function getConversionRate(ERC20 src, ERC20 dest, uint srcQty, uint blockNumber)  public view returns(uint);
+    function getConversionRate(ERC20 src, ERC20 dest, uint srcQty, uint blockNumber) public view returns(uint);
 }

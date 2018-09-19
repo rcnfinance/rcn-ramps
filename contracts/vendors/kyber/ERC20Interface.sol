@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 
 // https://github.com/ethereum/EIPs/issues/20
-contract ERC20 {
+interface ERC20 {
     function totalSupply() public view returns (uint supply);
     function balanceOf(address _owner) public view returns (uint balance);
     function transfer(address _to, uint _value) public returns (bool success);

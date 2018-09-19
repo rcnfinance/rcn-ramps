@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 
-import "./interfaces/ERC20Interface.sol";
+import "./ERC20Interface.sol";
 import "./Withdrawable.sol";
 
 
@@ -29,7 +29,7 @@ contract VolumeImbalanceRecorder is Withdrawable {
 
     mapping(address => mapping(uint=>uint)) public tokenImbalanceData;
 
-    constructor(address _admin) public {
+    function VolumeImbalanceRecorder(address _admin) public {
         require(_admin != address(0));
         admin = _admin;
     }
@@ -148,10 +148,10 @@ contract VolumeImbalanceRecorder is Withdrawable {
                 currentBlockImbalance = perBlockData.lastBlockBuyUnitsImbalance;
             }
         }
-/*
+
         if (buyImbalance == 0) {
             buyImbalance = imbalanceInRange;
-        }*/
+        }
     }
 
     function getImbalance(ERC20 token, uint rateUpdateBlock, uint currentBlock)

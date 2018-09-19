@@ -1,7 +1,7 @@
 pragma solidity ^0.4.19;
 
-import "../interfaces/Oracle.sol";
-import "./kyber/interfaces/ERC20Interface.sol";
+import "../../interfaces/Oracle.sol";
+import "../kyber/ERC20Interface.sol";
 
 contract TestOracle is Oracle {
     struct Currency {

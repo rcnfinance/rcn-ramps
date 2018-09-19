@@ -1,5 +1,5 @@
 let ConversionRates = artifacts.require("./ConversionRates.sol");
-let TestToken = artifacts.require("./utils/test/TestToken.sol");
+let TestToken = artifacts.require("./utils/vendors/rcn/TestToken.sol");
 let Reserve = artifacts.require("./KyberReserve.sol");
 let Network = artifacts.require("./KyberNetwork.sol");
 let WhiteList = artifacts.require("./WhiteList.sol");

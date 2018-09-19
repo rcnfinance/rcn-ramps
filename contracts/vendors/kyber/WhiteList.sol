@@ -2,8 +2,8 @@ pragma solidity ^0.4.18;
 
 
 import "./Withdrawable.sol";
-import "./interfaces/WhiteListInterface.sol";
-import "./interfaces/ERC20Interface.sol";
+import "./WhiteListInterface.sol";
+import "./ERC20Interface.sol";
 
 
 contract WhiteList is WhiteListInterface, Withdrawable {
@@ -14,7 +14,7 @@ contract WhiteList is WhiteListInterface, Withdrawable {
     uint constant public kgtHolderCategory = 2;
     ERC20 public kgtToken;
 
-    constructor(address _admin, ERC20 _kgtToken) public {
+    function WhiteList(address _admin, ERC20 _kgtToken) public {
         require(_admin != address(0));
         require(_kgtToken != address(0));
         kgtToken = _kgtToken;
@@ -30,21 +30,21 @@ contract WhiteList is WhiteListInterface, Withdrawable {
 
     function setUserCategory(address user, uint category) public onlyOperator {
         userCategory[user] = category;
-        emit UserCategorySet(user, category);
+        UserCategorySet(user, category);
     }
 
     event CategoryCapSet (uint category, uint sgdCap);
 
     function setCategoryCap(uint category, uint sgdCap) public onlyOperator {
         categoryCap[category] = sgdCap;
-        emit CategoryCapSet(category, sgdCap);
+        CategoryCapSet(category, sgdCap);
     }
 
     event SgdToWeiRateSet (uint rate);
 
     function setSgdToEthRate(uint _sgdToWeiRate) public onlyOperator {
         weiPerSgd = _sgdToWeiRate;
-        emit SgdToWeiRateSet(_sgdToWeiRate);
+        SgdToWeiRateSet(_sgdToWeiRate);
     }
 
     function getUserCategory (address user) public view returns(uint) {

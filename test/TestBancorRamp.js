@@ -1,19 +1,19 @@
-const BancorNetwork = artifacts.require      ('./test/bancor/BancorNetwork.sol');
-const ContractIds = artifacts.require        ('./test/bancor/ContractIds.sol');
-const BancorConverter = artifacts.require    ('./test/bancor/converter/BancorConverter.sol');
-const BancorFormula = artifacts.require      ('./test/bancor/converter/BancorFormula.sol');
-const BancorGasPriceLimit = artifacts.require('./test/bancor/converter/BancorGasPriceLimit.sol');
-const SmartToken = artifacts.require         ('./test/bancor/token/SmartToken.sol');
-const TestERC20Token = artifacts.require     ('./test/bancor/token/TestERC20Token.sol');
-const EtherToken = artifacts.require         ('./test/bancor/token/EtherToken.sol');
-const ContractRegistry = artifacts.require   ('./test/bancor/utility/ContractRegistry.sol');
-const ContractFeatures = artifacts.require   ('./test/bancor/utility/ContractFeatures.sol');
+const BancorNetwork = artifacts.require      ('./vendors/bancor/BancorNetwork.sol');
+const ContractIds = artifacts.require        ('./vendors/bancor/ContractIds.sol');
+const BancorConverter = artifacts.require    ('./vendors/bancor/converter/BancorConverter.sol');
+const BancorFormula = artifacts.require      ('./vendors/bancor/converter/BancorFormula.sol');
+const BancorGasPriceLimit = artifacts.require('./vendors/bancor/converter/BancorGasPriceLimit.sol');
+const SmartToken = artifacts.require         ('./vendors/bancor/token/SmartToken.sol');
+const TestERC20Token = artifacts.require     ('./vendors/bancor/token/TestERC20Token.sol');
+const EtherToken = artifacts.require         ('./vendors/bancor/token/EtherToken.sol');
+const ContractRegistry = artifacts.require   ('./vendors/bancor/utility/ContractRegistry.sol');
+const ContractFeatures = artifacts.require   ('./vendors/bancor/utility/ContractFeatures.sol');
 
-const NanoLoanEngine = artifacts.require('./test/rcn/NanoLoanEngine.sol');
-const BancorOracle = artifacts.require  ('./test/rcn/BancorOracle.sol');
-const TestCosigner = artifacts.require  ('./test/rcn/TestCosigner.sol');
+const NanoLoanEngine = artifacts.require('./vendors/rcn/NanoLoanEngine.sol');
+const BancorOracle = artifacts.require  ('./vendors/rcn/BancorOracle.sol');
+const TestCosigner = artifacts.require  ('./vendors/rcn/TestCosigner.sol');
 
-const TestToken = artifacts.require('./test/TestToken.sol');
+const TestToken = artifacts.require('./vendors/rcn/TestToken.sol');
 
 const ConverterRamp = artifacts.require('./ConverterRamp.sol');
 const BancorProxy = artifacts.require('./BancorProxy.sol');
