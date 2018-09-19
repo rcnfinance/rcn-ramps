@@ -5,7 +5,7 @@ import "./vendors/kyber/ERC20Interface.sol";
 import "./interfaces/TokenConverter.sol";
 import "./utils/Ownable.sol";
 
-contract KyberNetworkTokenProxy is TokenConverter, Ownable {
+contract KyberProxy is TokenConverter, Ownable {
       
     mapping(address => mapping(address => KyberNetworkProxy)) public converterOf;
     Token ethToken;
