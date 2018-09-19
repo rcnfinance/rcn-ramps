@@ -72,7 +72,7 @@ contract('KyberIntegration', function(accounts) {
         
         
         console.log("converter RCN-MANA");
-        converter = await KyberNetworkProxy.new(0x0);
+        converter = await KyberNetworkProxy.new(accounts[4]);
         console.log(converter.address);
         console.log("----------------------------")
 
