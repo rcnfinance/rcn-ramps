@@ -2,6 +2,7 @@ pragma solidity ^0.4.19;
 
 import "./interfaces/TokenConverter.sol";
 import "./vendors/rcn/NanoLoanEngine.sol";
+import "./utils/LrpSafeMath.sol";
 
 contract ConverterRamp is Ownable {
     using LrpSafeMath for uint256;

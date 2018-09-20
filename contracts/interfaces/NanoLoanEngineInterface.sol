@@ -4,7 +4,7 @@ import "./Token.sol";
 import "./Oracle.sol";
 import "./Cosigner.sol";
 
-interface NanoLoanEngine {
+interface NanoLoanEngineInterface {
     function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool);
     function rcn() public view returns (Token);
     function getOracle(uint256 index) public view returns (Oracle);

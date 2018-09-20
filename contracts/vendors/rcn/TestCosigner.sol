@@ -1,18 +1,15 @@
 pragma solidity ^0.4.19;
 
-import "./../../interfaces/NanoLoanEngine.sol";
-import "./../../interfaces/Engine.sol";
-import "./../../interfaces/Cosigner.sol";
-import "./../../interfaces/Oracle.sol";
+import "./../../interfaces/NanoLoanEngineInterface.sol";
 
 contract TestCosigner is Cosigner {
     function url() public view returns (string) {}
 
     function cost(address engine, uint256 index, bytes data, bytes oracleData) public view returns (uint256) {
-        return _cost(NanoLoanEngine(engine), index, data, oracleData);
+        return _cost(NanoLoanEngineInterface(engine), index, data, oracleData);
     }
     
-    function _cost(NanoLoanEngine engine, uint256 index, bytes, bytes oracleData) internal returns (uint256) {
+    function _cost(NanoLoanEngineInterface engine, uint256 index, bytes, bytes oracleData) internal returns (uint256) {
         return engine.convertRate(engine.getOracle(index), engine.getCurrency(index), oracleData, engine.getAmount(index)) / 100;
     }
 
