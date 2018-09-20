@@ -12,6 +12,7 @@ contract KyberProxy is TokenConverter, Ownable {
     KyberNetworkProxy public converter;
     Token ethToken;
 
+    event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
 
     constructor(Token _ethToken) public {
@@ -32,15 +33,18 @@ contract KyberProxy is TokenConverter, Ownable {
         Token destToken, 
         uint256 srcQty, 
         uint256 minReturn
-    ) external payable returns (uint256 amount) {
+    ) external payable returns (uint256 destAmount) {
+        
+        destAmount = _convert(ERC20(srcToken), ERC20(destToken), srcQty);
+        require(destAmount > minReturn, "Return amount too low");
+        
+        if (ERC20(destToken) == ERC20(ethToken))
+            msg.sender.transfer(destAmount);
+        else    
+            require(destToken.transfer(msg.sender, destAmount), "Error sending tokens");
 
-        require(msg.value == 0, "ETH not required");
-        
-        amount = _convert(ERC20(srcToken), ERC20(destToken), srcQty);
-        require(amount > minReturn, "Return amount too low");
-        require(destToken.transfer(msg.sender, amount), "Error sending tokens");
-        
-        return amount;
+        emit Swap(msg.sender, ERC20(srcToken), ERC20(destToken), destAmount);
+        return destAmount;
     }
 
     function _convert(
@@ -55,20 +59,23 @@ contract KyberProxy is TokenConverter, Ownable {
 
         (uint minConversionRate,) = converter.getExpectedRate(srcToken, ERC20(ETH_ADDRESS), srcQty);
 
+        if (ERC20(ethToken) == ERC20(ETH_ADDRESS)) {
+            destAmount = converter.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
+            return destAmount;
+        }
+
         uint destAmount = converter.trade(
-            srcToken, 
+            srcToken,
             srcQty, 
             destToken, 
             this, 
             MAX_UINT, 
             minConversionRate, 
-            0x0
+            0
         );
 
-        // Send the swapped tokens to the destination address
-        emit Swap(msg.sender, srcToken, destToken, destAmount);
-
         return destAmount;
+
     } 
 
     function withdrawTokens(
@@ -86,12 +93,19 @@ contract KyberProxy is TokenConverter, Ownable {
         _to.transfer(_amount);
     }
 
+    /*
+    *  @notice Can only be called by operators
+    *  @dev Sets the KyberNetworkProxy address
+    *  @param _converter KyberNetworkProxy contract address
+    */
     function setConverter(
         KyberNetworkProxy _converter
     ) public onlyOwner returns (bool) {
        converter = _converter;
     }
 
-    function() external payable {}
+    function() external payable {
+        emit ETHReceived(msg.sender, msg.value);
+    }
 	
 }

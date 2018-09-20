@@ -104,7 +104,7 @@ contract('ConverterRamp', function(accounts) {
         return "0x" + source;
     }
 
-    it("Should lend and pay using the ramp", async() => {
+    it("Should lend and pay using the ramp (Bancor)", async() => {
         // Create a random loan
         let loanReceipt = await rcnEngine.createLoan(
             0x0, // Contract of the oracle
