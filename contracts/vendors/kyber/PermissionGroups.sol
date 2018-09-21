@@ -11,7 +11,7 @@ contract PermissionGroups {
     address[] internal alertersGroup;
     uint constant internal MAX_GROUP_SIZE = 50;
 
-    construct () public {
+    constructor () public {
         admin = msg.sender;
     }
 
@@ -117,7 +117,7 @@ contract PermissionGroups {
             if (operatorsGroup[i] == operator) {
                 operatorsGroup[i] = operatorsGroup[operatorsGroup.length - 1];
                 operatorsGroup.length -= 1;
-                emit (operator, false);
+                emit OperatorAdded(operator, false);
                 break;
             }
         }

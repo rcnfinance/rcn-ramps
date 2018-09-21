@@ -14,7 +14,7 @@ contract WhiteList is WhiteListInterface, Withdrawable {
     uint constant public kgtHolderCategory = 2;
     ERC20 public kgtToken;
 
-    constructor WhiteList(address _admin, ERC20 _kgtToken) public {
+    constructor (address _admin, ERC20 _kgtToken) public {
         require(_admin != address(0));
         require(_kgtToken != address(0));
         kgtToken = _kgtToken;
