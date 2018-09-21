@@ -10,15 +10,15 @@ contract KyberProxy is TokenConverter, Ownable {
     
     uint256 private constant MAX_UINT = uint256(0) - 1;
 
-    KyberNetworkProxy kyberProxy;
+    KyberNetworkProxy kyber;
     Token ethToken;
 
     event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, Token srcToken, Token destToken, uint amount);
 
-    constructor (Token _ethToken, KyberNetworkProxy _kyberProxy) public {
+    constructor (Token _ethToken, KyberNetworkProxy _kyber) public {
         ethToken = _ethToken;
-        kyberProxy = _kyberProxy;
+        kyber = _kyber;
     }
 
     function getReturn(
@@ -28,7 +28,7 @@ contract KyberProxy is TokenConverter, Ownable {
     ) external view returns (uint256) {
         ERC20 srcToken = ERC20(from);
         ERC20 destToken = ERC20(to);   
-        (uint256 amount,) = kyberProxy.getExpectedRate(srcToken, destToken, srcQty);
+        (uint256 amount,) = kyber.getExpectedRate(srcToken, destToken, srcQty);
         return amount;
     }
 
@@ -62,24 +62,22 @@ contract KyberProxy is TokenConverter, Ownable {
         
         // Check that the player has transferred the token to this contract
         require(srcToken.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
-        require(srcToken.approve(kyberProxy, srcQty));
+        require(srcToken.approve(kyber, srcQty));
 
         uint minConversionRate = this.getReturn(from, to, srcQty);
 
-        if (ethToken == ETH_ADDRESS) {
-            destAmount = kyberProxy.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
-            return destAmount;
-        }
- 
-        uint destAmount = kyberProxy.trade(
-            srcToken,           // srcToken
-            srcQty,             // srcQty
-            destToken,          // destToken 
-            this,               // destAddress
-            MAX_UINT,           // maxDestAmount
-            minConversionRate,  // minConversionRate
-            0                  // walletId
-        );
+        if (ethToken == ETH_ADDRESS) 
+            destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
+        else 
+            uint destAmount = kyber.trade(
+                srcToken,           // srcToken
+                srcQty,             // srcQty
+                destToken,          // destToken 
+                this,               // destAddress
+                MAX_UINT,           // maxDestAmount
+                minConversionRate,  // minConversionRate
+                0                   // walletId
+            );
 
         return destAmount;
 
@@ -103,7 +101,7 @@ contract KyberProxy is TokenConverter, Ownable {
     function setConverter(
         KyberNetworkProxy _converter
     ) public onlyOwner returns (bool) {
-       kyberProxy = _converter;
+       kyber = _converter;
     }
 
     function() external payable {
