@@ -123,7 +123,7 @@ contract ConverterRamp is Ownable {
         
         uint256 optimalSell = getOptimalSell(converter, fromToken, rcn, requiredRcn, convertRules[I_MARGIN_SPEND]);
         emit OptimalSell(fromToken, optimalSell);
-        /*
+        
         pullAmount(fromToken, optimalSell);
         uint256 bought = convertSafe(converter, fromToken, rcn, optimalSell);
 
@@ -146,7 +146,7 @@ contract ConverterRamp is Ownable {
         );
 
         require(rcn.balanceOf(this) == initialBalance, "The contract balance should not change");
-        */
+        
         return true;
     }
 

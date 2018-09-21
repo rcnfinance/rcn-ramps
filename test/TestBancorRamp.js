@@ -281,9 +281,10 @@ contract('ConverterRamp', function(accounts) {
         try {
             pending = await rcnEngine.getPendingAmount.call(loanId);
             assert.equal(pending.toFixed(0), 0);
-        } catch (e){}
+        } catch (e){
+            assert.equal(false, true)
+        }
 
-        assert.equal(false, true)
     })
 
     it("Should lend and pay using the ramp + oracle + cosigner", async() => {

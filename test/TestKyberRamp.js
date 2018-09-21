@@ -171,7 +171,7 @@ contract('ConverterRamp', function(accounts) {
 
         assert.equal(await mana.balanceOf(converterRamp.address), 0);
         assert.equal(await rcn.balanceOf(converterRamp.address), 0);
-        //assert.equal(await engine.ownerOf(loanId), lender);
+        assert.equal(await engine.ownerOf(loanId), lender);
 
         await mana.mint(payer, 10000 * 10 ** 18);
         await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
@@ -183,7 +183,7 @@ contract('ConverterRamp', function(accounts) {
             toBytes32(payer)
         ]
 
-        /*await converterRamp.pay(
+        await converterRamp.pay(
             converter.address,
             mana.address,
             payLoanParams,
@@ -192,7 +192,7 @@ contract('ConverterRamp', function(accounts) {
             {
                 from: payer
             }
-        );*/
+        );
     })
 
     it("Should lend and pay using the ramp + oracle", async() => {
@@ -300,11 +300,13 @@ contract('ConverterRamp', function(accounts) {
         );
         
         try {
-            pending = await rcnEngine.getPendingAmount.call(loanId);
+            pending = await engine.getPendingAmount.call(loanId);
             assert.equal(pending.toFixed(0), 0);
-        } catch (e){}
+        } catch (e){
+            assert.equal(false, true)
+        }
 
-        assert.equal(false, true)
+        
     })
 
 })
