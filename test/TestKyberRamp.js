@@ -112,7 +112,7 @@ contract('ConverterRamp', function(accounts) {
         console.log(kyberProxy.address);
         console.log("----------------------------");
 
-        /*console.log("Deploy kyber oracle.");
+        console.log("Deploy kyber oracle.");
         kyberOracle = await KyberOracle.new();
         await kyberOracle.setRcn(rcn.address);
         await kyberOracle.setKyber(kyberProxyNetwork.address);
@@ -121,7 +121,7 @@ contract('ConverterRamp', function(accounts) {
         console.log("----------------------------")
     
 
-        assert.equal(await kyberOracle.tickerToToken(manaCurrency), mana.address);*/
+        assert.equal(await kyberOracle.tickerToToken(manaCurrency), mana.address);
         
     })
 
@@ -169,8 +169,8 @@ contract('ConverterRamp', function(accounts) {
             }
         );
 
-        //assert.equal(await mana.balanceOf(converterRamp.address), 0);
-        //assert.equal(await rcn.balanceOf(converterRamp.address), 0);
+        assert.equal(await mana.balanceOf(converterRamp.address), 0);
+        assert.equal(await rcn.balanceOf(converterRamp.address), 0);
         //assert.equal(await engine.ownerOf(loanId), lender);
 
         await mana.mint(payer, 10000 * 10 ** 18);
@@ -193,6 +193,118 @@ contract('ConverterRamp', function(accounts) {
                 from: payer
             }
         );*/
+    })
+
+    it("Should lend and pay using the ramp + oracle", async() => {
+        const kyberOracle = await KyberOracle.new();
+        await kyberOracle.setRcn(rcn.address);
+        await kyberOracle.addCurrencyConverter("MANA", mana.address, converter.address);
+        const manaCurrency = await kyberOracle.encodeCurrency("MANA");
+
+        // Create a random loan
+        let loanReceipt = await engine.createLoan(
+            kyberOracle.address, // Contract of the oracle
+            borrower, // Borrower of the loan (caller of this method)
+            manaCurrency, // Currency of the loan, MANA
+            web3.toWei(500), // Requested 500 MANA
+            2000000,
+            3000000,
+            86400 * 90, // Duration of the loan, 6 months
+            0, // Payment can start right away
+            10 ** 40, // This request never expires
+            "Loan with emoji 🦓 :)"
+        );
+
+        let loanId = 1;
+
+        await mana.mint(lender, 10000 * 10 ** 18);
+        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
+
+        const lendLoanParams = [
+            toBytes32(engine.address),
+            toBytes32(loanId.toString(16)),
+            toBytes32(0x0)
+        ]
+
+        let convertParams = [
+            50,
+            0,
+            0
+        ]
+
+        await converterRamp.lend(
+            converter.address,
+            mana.address,
+            lendLoanParams,
+            [],
+            [],
+            convertParams,
+            {
+                from: lender
+            }
+        );
+
+        assert.equal(await mana.balanceOf(converterRamp.address), 0);
+        assert.equal(await rcn.balanceOf(converterRamp.address), 0);
+        assert.equal(await rcnEngine.ownerOf(loanId), lender);
+
+        await mana.mint(payer, 10000 * 10 ** 18);
+        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
+
+        let payLoanParams = [
+            toBytes32(rcnEngine.address),
+            toBytes32(loanId.toString(16)),
+            toBytes32((100 * 10 ** 18).toString(16)),
+            toBytes32(payer)
+        ]
+
+        await converterRamp.pay(
+            converter.address,
+            mana.address,
+            payLoanParams,
+            [],
+            convertParams,
+            {
+                from: payer
+            }
+        );
+
+        // Pay the total amount of the loan
+        web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [10], id: 0});
+
+        let pending = (await engine.getPendingAmount.call(loanId)) * 5.05;
+
+        payLoanParams = [
+            toBytes32(engine.address),
+            toBytes32(loanId.toString(16)),
+            toBytes32((pending).toString(16)),
+            toBytes32(payer)
+        ]
+
+        convertParams = [
+            50,
+            // 0,
+            ((pending) * (100000 + 50)) / 100000,
+            0
+        ]
+
+        await converterRamp.pay(
+            converter.address,
+            mana.address,
+            payLoanParams,
+            [],
+            convertParams,
+            {
+                from: payer
+            }
+        );
+        
+        try {
+            pending = await rcnEngine.getPendingAmount.call(loanId);
+            assert.equal(pending.toFixed(0), 0);
+        } catch (e){}
+
+        assert.equal(false, true)
     })
 
 })

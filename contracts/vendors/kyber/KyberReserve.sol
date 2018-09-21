@@ -32,7 +32,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
     event DepositToken(ERC20 token, uint amount);
 
     function() public payable {
-        DepositToken(ETH_TOKEN_ADDRESS, msg.value);
+        emit DepositToken(ETH_TOKEN_ADDRESS, msg.value);
     }
 
     event TradeExecute(
@@ -68,7 +68,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
 
     function enableTrade() public onlyAdmin returns(bool) {
         tradeEnabled = true;
-        TradeEnabled(true);
+        emit TradeEnabled(true);
 
         return true;
     }
@@ -84,7 +84,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
 
     function approveWithdrawAddress(ERC20 token, address addr, bool approve) public onlyAdmin {
         approvedWithdrawAddresses[keccak256(token, addr)] = approve;
-        WithdrawAddressApproved(token, addr, approve);
+        emit WithdrawAddressApproved(token, addr, approve);
 
         setDecimals(token);
         if ((tokenWallet[token] == address(0x0)) && (token != ETH_TOKEN_ADDRESS)) {
@@ -98,7 +98,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
     function setTokenWallet(ERC20 token, address wallet) public onlyAdmin {
         require(wallet != address(0x0));
         tokenWallet[token] = wallet;
-        NewTokenWallet(token, wallet);
+        emit NewTokenWallet(token, wallet);
     }
 
     event WithdrawFunds(ERC20 token, uint amount, address destination);
@@ -112,7 +112,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
             require(token.transferFrom(tokenWallet[token], destination, amount));
         }
 
-        WithdrawFunds(token, amount, destination);
+        emit WithdrawFunds(token, amount, destination);
 
         return true;
     }
@@ -134,7 +134,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
         conversionRatesContract = _conversionRates;
         sanityRatesContract = _sanityRates;
 
-        SetContractAddresses(kyberNetwork, conversionRatesContract, sanityRatesContract);
+        emit SetContractAddresses(kyberNetwork, conversionRatesContract, sanityRatesContract);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -256,7 +256,7 @@ contract KyberReserve is KyberReserveInterface, Withdrawable, Utils {
             require(destToken.transferFrom(tokenWallet[destToken], destAddress, destAmount));
         }
 
-        TradeExecute(msg.sender, srcToken, srcAmount, destToken, destAmount, destAddress);
+        emit TradeExecute(msg.sender, srcToken, srcAmount, destToken, destAmount, destAddress);
 
         return true;
     }

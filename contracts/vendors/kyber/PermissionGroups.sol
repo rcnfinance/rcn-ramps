@@ -11,7 +11,7 @@ contract PermissionGroups {
     address[] internal alertersGroup;
     uint constant internal MAX_GROUP_SIZE = 50;
 
-    function PermissionGroups() public {
+    construct () public {
         admin = msg.sender;
     }
 
@@ -46,7 +46,7 @@ contract PermissionGroups {
      */
     function transferAdmin(address newAdmin) public onlyAdmin {
         require(newAdmin != address(0));
-        TransferAdminPending(pendingAdmin);
+        emit TransferAdminPending(pendingAdmin);
         pendingAdmin = newAdmin;
     }
 
@@ -56,8 +56,8 @@ contract PermissionGroups {
      */
     function transferAdminQuickly(address newAdmin) public onlyAdmin {
         require(newAdmin != address(0));
-        TransferAdminPending(newAdmin);
-        AdminClaimed(newAdmin, admin);
+        emit TransferAdminPending(newAdmin);
+        emit AdminClaimed(newAdmin, admin);
         admin = newAdmin;
     }
 
@@ -68,7 +68,7 @@ contract PermissionGroups {
      */
     function claimAdmin() public {
         require(pendingAdmin == msg.sender);
-        AdminClaimed(pendingAdmin, admin);
+        emit AdminClaimed(pendingAdmin, admin);
         admin = pendingAdmin;
         pendingAdmin = address(0);
     }
@@ -104,7 +104,7 @@ contract PermissionGroups {
         require(!operators[newOperator]); // prevent duplicates.
         require(operatorsGroup.length < MAX_GROUP_SIZE);
 
-        OperatorAdded(newOperator, true);
+        emit OperatorAdded(newOperator, true);
         operators[newOperator] = true;
         operatorsGroup.push(newOperator);
     }
@@ -117,7 +117,7 @@ contract PermissionGroups {
             if (operatorsGroup[i] == operator) {
                 operatorsGroup[i] = operatorsGroup[operatorsGroup.length - 1];
                 operatorsGroup.length -= 1;
-                OperatorAdded(operator, false);
+                emit (operator, false);
                 break;
             }
         }
