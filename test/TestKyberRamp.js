@@ -104,8 +104,9 @@ contract('ConverterRamp', function(accounts) {
         await rcn.mint(kyberProxyNetwork.address, 1000000*10**18);
         console.log(kyberProxyNetwork.address);
         console.log("----------------------------"); 
-        await kyberProxyNetwork.setRateRM(1262385660474240000);
-        await kyberProxyNetwork.setRateMR(792150949832820000);
+        await kyberProxyNetwork.setExpectedRate(1262385660474240000);
+        await kyberProxyNetwork.setSlippageRate(1262385660474240000);
+        //await kyberProxyNetwork.setSlippageRate(792150949832820000);
 
         console.log("Deploy kyber proxy.");
         kyberProxy = await KyberProxy.new(0x0, kyberProxyNetwork.address);
@@ -182,8 +183,8 @@ contract('ConverterRamp', function(accounts) {
             toBytes32((100 * 10 ** 18).toString(16)),
             toBytes32(payer)
         ]
-
-        /*await converterRamp.pay(
+        
+        await converterRamp.pay(
             converter.address,
             mana.address,
             payLoanParams,
@@ -192,10 +193,10 @@ contract('ConverterRamp', function(accounts) {
             {
                 from: payer
             }
-        );*/
+        );
     })
 
-    it("Should lend and pay using the ramp + oracle", async() => {
+    /*it("Should lend and pay using the ramp + oracle", async() => {
         const kyberOracle = await KyberOracle.new();
         await kyberOracle.setRcn(rcn.address);
         await kyberOracle.addCurrencyConverter("MANA", mana.address, converter.address);
@@ -307,6 +308,6 @@ contract('ConverterRamp', function(accounts) {
         }
 
         
-    })
+    })*/
 
 })

@@ -42,6 +42,7 @@ contract KyberProxy is TokenConverter, Ownable {
         destAmount = _convert(srcToken, destToken, srcQty);
         require(destAmount > minReturn, "Return amount too low");
         
+        return destAmount;
         if (destToken == ethToken)
             msg.sender.transfer(destAmount);
         else    
@@ -55,21 +56,23 @@ contract KyberProxy is TokenConverter, Ownable {
         Token from,
         Token to,   
         uint256 srcQty
-    ) internal returns (uint256) {
+    ) internal returns (uint256 destAmount) {
 
-        ERC20 srcToken = ERC20(from);
-        ERC20 destToken = ERC20(to);       
-        
         // Check that the player has transferred the token to this contract
-        require(srcToken.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
-        require(srcToken.approve(kyber, srcQty));
+        require(from.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
+        require(to.approve(kyber, srcQty));     
 
         uint minConversionRate = this.getReturn(from, to, srcQty);
 
-        if (ethToken == ETH_ADDRESS) 
+        ERC20 srcToken = ERC20(from);
+        ERC20 destToken = ERC20(to);
+
+        if (from == ETH_ADDRESS) 
             destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
-        else 
-            uint destAmount = kyber.trade(
+        else if (to == ETH_ADDRESS)
+            kyber.swapTokenToEther(srcToken, srcQty, minConversionRate);
+        else
+            destAmount = kyber.trade(
                 srcToken,           // srcToken
                 srcQty,             // srcQty
                 destToken,          // destToken 
@@ -80,7 +83,7 @@ contract KyberProxy is TokenConverter, Ownable {
             );
 
         return destAmount;
-
+        
     } 
 
     function withdrawTokens(

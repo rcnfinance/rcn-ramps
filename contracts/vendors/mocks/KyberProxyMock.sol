@@ -7,21 +7,21 @@ contract KyberProxyMock is KyberNetworkProxy {
     ERC20 public MANA;
     ERC20 public RCN;
 
-    uint256 public rateMR;
-    uint256 public rateRM;
+    uint256 public expectedRate;
+    uint256 public slippageRate;
 
     constructor (address _admin, ERC20 _MANA, ERC20 _RCN) KyberNetworkProxy(_admin) public {
         MANA = _MANA;
         RCN = _RCN;
     }
 
-    function setRateMR(uint256 _rateMR) public returns (bool) {
-        rateMR = _rateMR;
+    function setExpectedRate(uint256 _expectedRate) public returns (bool) {
+        expectedRate = _expectedRate;
         return true;
     }
 
-    function setRateRM(uint256 _rateRM) public returns (bool) {
-        rateRM = _rateRM;
+    function setSlippageRate(uint256 _slippageRate) public returns (bool) {
+        slippageRate = _slippageRate;
         return true;
     }
 
@@ -43,17 +43,12 @@ contract KyberProxyMock is KyberNetworkProxy {
         uint maxDestAmount,
         uint minConversionRate,
         address walletId
-    )
-        public
-        payable
-        returns(uint)
-    {
+    ) public payable returns(uint) {
         (uint256 rate, ) = getExpectedRate(src, dest, 0);
-        require(rate > minConversionRate);
-        require(src.transferFrom(msg.sender, this, srcAmount));
+        require(src.transferFrom(msg.sender, this, srcAmount), "src.transferFrom(msg.sender, this, srcAmount)");
         uint256 destAmount = convertRate(srcAmount, rate);
-        require(destAmount < maxDestAmount);
-        require(dest.transfer(destAddress, destAmount));
+        require(destAmount < maxDestAmount, "destAmount < maxDestAmount");
+        require(dest.transfer(destAddress, destAmount), "dest.transfer(destAddress, destAmount)");
         return destAmount;
     }
 
@@ -63,12 +58,7 @@ contract KyberProxyMock is KyberNetworkProxy {
 
     function getExpectedRate(ERC20 src, ERC20 dest, uint srcQty)
         public view returns(uint expectedRate, uint slippageRate) {
-        if (src == MANA && dest == RCN) {
-            return (rateMR, rateMR);
-        } else if (src == RCN && dest == MANA) {
-            return (rateRM, rateRM);
-        }
-        revert("getExpectedRate");
+        return (expectedRate, slippageRate);
     }
 
 }
