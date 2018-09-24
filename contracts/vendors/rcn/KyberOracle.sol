@@ -3,16 +3,10 @@ pragma solidity ^0.4.19;
 import "./../../interfaces/Oracle.sol";
 import "./../../interfaces/Token.sol";
 import "./../../utils/Ownable.sol";
-
-
-contract KyberNetwork {
-    function getExpectedRate(address src, address dest, uint srcQty)
-        public view
-        returns (uint expectedRate, uint slippageRate);
-}
+import "../mocks/KyberProxyMock.sol";
 
 contract KyberOracle is Oracle {
-    KyberNetwork public kyber;
+    KyberNetworkProxy public kyber;
     address public rcn;
     Oracle public delegate;
     
@@ -26,7 +20,7 @@ contract KyberOracle is Oracle {
         return true;
     }
 
-    function setKyber(KyberNetwork _kyber) public onlyOwner returns (bool) {
+    function setKyber(KyberNetworkProxy _kyber) public onlyOwner returns (bool) {
         kyber = _kyber;
         return true;
     }
@@ -71,7 +65,7 @@ contract KyberOracle is Oracle {
         if (delegate != address(0)) {
             return delegate.getRate(currency, data);
         }
-        (rate, ) = kyber.getExpectedRate(tickerToToken[currency], rcn, 1 ether);
+        (rate, ) = kyber.getExpectedRate(ERC20(tickerToToken[currency]), ERC20(rcn), 1 ether);
         decimals = tickerToDecimals[currency];
     }
 }
