@@ -1,5 +1,4 @@
-const MANAToken = artifacts.require("./vendors/mocks/MANATokenMock.sol");
-const RCNToken = artifacts.require("./vendors/mocks/RCNTokenMock.sol");
+const TestToken = artifacts.require("./vendors/rcn/TestToken.sol");
 
 //Engine
 const NanoLoanEngine = artifacts.require("./vendors/rcn/NanoLoanEngine.sol");
@@ -79,12 +78,12 @@ contract('ConverterRamp', function(accounts) {
         console.log("----------------------------");
 
         console.log("Deploy MANA token.");
-        mana = await MANAToken.new();
+        mana = await TestToken.new("MANA", "MANA", 18, "1.0", 6000);
         console.log(mana.address);
         console.log("----------------------------");
         
         console.log("Deploy RCN token.");
-        rcn = await RCNToken.new();
+        rcn = await TestToken.new("RCN", "RCN", 18, "1.1", 4000);
         console.log(rcn.address);
         console.log("----------------------------");
 
@@ -100,13 +99,10 @@ contract('ConverterRamp', function(accounts) {
    
         console.log("Deploy kyber network.");
         kyberProxyNetwork = await KyberProxyMock.new(accounts[9], mana.address, rcn.address);
-        await mana.mint(kyberProxyNetwork.address, 1000000*10**18);
-        await rcn.mint(kyberProxyNetwork.address, 1000000*10**18);
+        await mana.createTokens(kyberProxyNetwork.address, 1000000*10**18);
+        await rcn.createTokens(kyberProxyNetwork.address, 1000000*10**18);
         console.log(kyberProxyNetwork.address);
         console.log("----------------------------"); 
-        await kyberProxyNetwork.setExpectedRate(1262385660474240000);
-        await kyberProxyNetwork.setSlippageRate(1262385660474240000);
-        //await kyberProxyNetwork.setSlippageRate(792150949832820000);
 
         console.log("Deploy kyber proxy.");
         kyberProxy = await KyberProxy.new(0x0, kyberProxyNetwork.address);
@@ -121,7 +117,6 @@ contract('ConverterRamp', function(accounts) {
         console.log(kyberOracle.address);
         console.log("----------------------------")
     
-
         assert.equal(await kyberOracle.tickerToToken(manaCurrency), mana.address);
         
     })
@@ -143,7 +138,11 @@ contract('ConverterRamp', function(accounts) {
         
         let loanId = 1;
 
-        await mana.mint(lender, 10000 * 10 ** 18);
+        await kyberProxyNetwork.setExpectedRate(1);
+        await kyberProxyNetwork.setSlippageRate(1);
+        await kyberProxyNetwork.setAmount(500);
+
+        await mana.createTokens(lender, 10000 * 10 ** 18);
         await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
 
         const lendLoanParams = [
@@ -174,7 +173,7 @@ contract('ConverterRamp', function(accounts) {
         assert.equal(await rcn.balanceOf(converterRamp.address), 0);
         assert.equal(await engine.ownerOf(loanId), lender);
 
-        await mana.mint(payer, 10000 * 10 ** 18);
+        await mana.createTokens(payer, 10000 * 10 ** 18);
         await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
 
         const payLoanParams = [

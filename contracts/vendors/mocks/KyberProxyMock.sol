@@ -9,10 +9,16 @@ contract KyberProxyMock is KyberNetworkProxy {
 
     uint256 public expectedRate;
     uint256 public slippageRate;
+    uint256 public amount;
 
     constructor (address _admin, ERC20 _MANA, ERC20 _RCN) KyberNetworkProxy(_admin) public {
         MANA = _MANA;
         RCN = _RCN;
+    }
+
+    function setAmount(uint256 _amount) public returns (bool) {
+        amount = _amount;
+        return true;
     }
 
     function setExpectedRate(uint256 _expectedRate) public returns (bool) {
@@ -44,10 +50,7 @@ contract KyberProxyMock is KyberNetworkProxy {
         uint minConversionRate,
         address walletId
     ) public payable returns(uint) {
-        (uint256 rate, ) = getExpectedRate(src, dest, 0);
-        require(src.transferFrom(msg.sender, this, srcAmount), "src.transferFrom(msg.sender, this, srcAmount)");
-        uint256 destAmount = convertRate(srcAmount, rate);
-        require(destAmount < maxDestAmount, "destAmount < maxDestAmount");
+        uint destAmount = amount*10**18;
         require(dest.transfer(destAddress, destAmount), "dest.transfer(destAddress, destAmount)");
         return destAmount;
     }

@@ -66,11 +66,11 @@ contract KyberProxy is TokenConverter, Ownable {
         ERC20 srcToken = ERC20(from);
         ERC20 destToken = ERC20(to);
 
-        if (from == ETH_ADDRESS && to != ETH_ADDRESS) 
+        if (from == ETH_ADDRESS && to != ETH_ADDRESS)
             destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
         else if (from != ETH_ADDRESS && to == ETH_ADDRESS)
             kyber.swapTokenToEther(srcToken, srcQty, minConversionRate);
-        else
+        else 
             destAmount = kyber.trade(
                 srcToken,           // srcToken
                 srcQty,             // srcQty
@@ -80,7 +80,7 @@ contract KyberProxy is TokenConverter, Ownable {
                 minConversionRate,  // minConversionRate
                 0                   // walletId
             );
-
+        
         return destAmount;
 
     } 
