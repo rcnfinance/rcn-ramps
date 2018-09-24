@@ -42,7 +42,6 @@ contract KyberProxy is TokenConverter, Ownable {
         destAmount = _convert(srcToken, destToken, srcQty);
         require(destAmount > minReturn, "Return amount too low");
         
-        return destAmount;
         if (destToken == ethToken)
             msg.sender.transfer(destAmount);
         else    
@@ -67,9 +66,9 @@ contract KyberProxy is TokenConverter, Ownable {
         ERC20 srcToken = ERC20(from);
         ERC20 destToken = ERC20(to);
 
-        if (from == ETH_ADDRESS) 
+        if (from == ETH_ADDRESS && to != ETH_ADDRESS) 
             destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
-        else if (to == ETH_ADDRESS)
+        else if (from != ETH_ADDRESS && to == ETH_ADDRESS)
             kyber.swapTokenToEther(srcToken, srcQty, minConversionRate);
         else
             destAmount = kyber.trade(
@@ -83,7 +82,7 @@ contract KyberProxy is TokenConverter, Ownable {
             );
 
         return destAmount;
-        
+
     } 
 
     function withdrawTokens(
