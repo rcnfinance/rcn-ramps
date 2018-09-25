@@ -97,13 +97,17 @@ contract('ConverterRamp', function(accounts) {
    
         console.log("Deploy kyber network.");
         kyberProxyNetwork = await KyberProxyMock.new(accounts[9], mana.address, rcn.address);
+        await kyberProxyNetwork.setExpectedRate(1);
+        await kyberProxyNetwork.setSlippageRate(1);
+        await kyberProxyNetwork.setAmount(500);
         await mana.createTokens(kyberProxyNetwork.address, 1000000*10**18);
         await rcn.createTokens(kyberProxyNetwork.address, 1000000*10**18);
         console.log(kyberProxyNetwork.address);
         console.log("----------------------------"); 
 
         console.log("Deploy kyber proxy.");
-        kyberProxy = await KyberProxy.new(0x0, kyberProxyNetwork.address);
+        kyberProxy = await KyberProxy.new(0x0);
+        kyberProxy.setConverter(kyberProxyNetwork.address);
         console.log(kyberProxy.address);
         console.log("----------------------------");
 
@@ -136,10 +140,6 @@ contract('ConverterRamp', function(accounts) {
         
         let loanId = 1;
 
-        await kyberProxyNetwork.setExpectedRate(1);
-        await kyberProxyNetwork.setSlippageRate(1);
-        await kyberProxyNetwork.setAmount(500);
-
         await mana.createTokens(lender, 10000 * 10 ** 18);
         await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
 
@@ -167,82 +167,6 @@ contract('ConverterRamp', function(accounts) {
             }
         );
 
-        assert.equal(await mana.balanceOf(converterRamp.address), 0);
-        assert.equal(await rcn.balanceOf(converterRamp.address), 0);
-        assert.equal(await engine.ownerOf(loanId), lender);
-
-        await mana.createTokens(payer, 10000 * 10 ** 18);
-        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
-
-        const payLoanParams = [
-            toBytes32(engine.address),
-            toBytes32(loanId.toString(16)),
-            toBytes32((100 * 10 ** 18).toString(16)),
-            toBytes32(payer)
-        ]
-        
-        await converterRamp.pay(
-            kyberProxy.address,
-            mana.address,
-            payLoanParams,
-            [],
-            convertParams,
-            {
-                from: payer
-            }
-        );
-    })
-
-    it("Should lend and pay using the ramp (Kyber) mana -> rcn", async() => {
-
-        // Create a random loan
-        let loanReceipt = await engine.createLoan(
-            kyberOracle.address, // Contract of the oracle
-            borrower, // Borrower of the loan (caller of this method)
-            manaCurrency, // Currency of the loan is MANA
-            web3.toWei(500), // Requested 500 MANA
-            20,
-            30,
-            86400 * 90, // Duration of the loan, 6 months
-            0, // Payment can start right away
-            10 ** 40, // This request never expires
-            "Loan with emoji 🦓 :)"
-        );
-        
-        let loanId = 1;
-
-        await kyberProxyNetwork.setExpectedRate(1);
-        await kyberProxyNetwork.setSlippageRate(1);
-        await kyberProxyNetwork.setAmount(500);
-
-        await mana.createTokens(lender, 10000 * 10 ** 18);
-        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
-
-        const lendLoanParams = [
-            toBytes32(engine.address),
-            toBytes32(loanId.toString(16)),
-            toBytes32(0x0)
-        ]
-
-        const convertParams = [
-            50,
-            0,
-            0
-        ]
-        
-        await converterRamp.lend(
-            kyberProxy.address,
-            mana.address,
-            lendLoanParams,
-            [],
-            [],
-            convertParams,
-            {
-                from: lender
-            }
-        );
-
-        
         assert.equal(await mana.balanceOf(converterRamp.address), 0);
         assert.equal(await rcn.balanceOf(converterRamp.address), 0);
         assert.equal(await engine.ownerOf(loanId), lender);

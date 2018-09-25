@@ -16,9 +16,8 @@ contract KyberProxy is TokenConverter, Ownable {
     event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, Token srcToken, Token destToken, uint amount);
 
-    constructor (Token _ethToken, KyberNetworkProxy _kyber) public {
+    constructor (Token _ethToken) public {
         ethToken = _ethToken;
-        kyber = _kyber;
     }
 
     function getReturn(

@@ -42,3 +42,5 @@ build/
 node_modules
 .vscode
 package-lock.json
+infura_access_token
+mnemonic
