@@ -9,16 +9,15 @@ import "./utils/Ownable.sol";
 contract KyberProxy is TokenConverter, Ownable {
     
     uint256 constant internal MAX_UINT = uint256(0) - 1;
-    ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(ETH_ADDRESS);
+    ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     KyberNetworkProxy kyber;
-    Token ethToken;
 
     event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, Token srcToken, Token destToken, uint amount);
 
-    constructor (Token _ethToken) public {
-        ethToken = _ethToken;
+    constructor (KyberNetworkProxy _kyber) public {
+        kyber = _kyber;
     }
 
     function getReturn(

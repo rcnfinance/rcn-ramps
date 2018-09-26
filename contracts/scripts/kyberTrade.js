@@ -30,11 +30,11 @@ async function main() {
 
   // Set the instances
   const NetworkProxyInstance = await NetworkProxy.at(NetworkProxy.address);
-  console.log("asd");
-  rcn = await TestToken.new("RCN", "RCN", 18, "1.1", 4000);
+
+  const rcn = await TestToken.new("RCN", "RCN", 18, "1.1", 4000);
   stdlog(`RCN (${rcn.address})`);
 
-  mana = await TestToken.new("MANA", "MANA", 18, "1.0", 6000);
+  const mana = await TestToken.new("MANA", "MANA", 18, "1.0", 6000);
   stdlog(`MANA (${mana.address})`);
 
   stdlog('- START -');
