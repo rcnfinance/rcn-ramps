@@ -39,12 +39,7 @@ contract KyberProxy is TokenConverter, Ownable {
     ) external payable returns (uint256 destAmount) {
         
         destAmount = _convert(srcToken, destToken, srcQty);
-        require(destAmount > minReturn, "Return amount too low");
-        
-        if (destToken == ethToken)
-            msg.sender.transfer(destAmount);
-        else    
-            require(destToken.transfer(msg.sender, destAmount), "Error sending tokens");
+        require(destAmount > minReturn, "Return amount too low");       
 
         emit Swap(msg.sender, srcToken, destToken, destAmount);
         return destAmount;
@@ -58,30 +53,34 @@ contract KyberProxy is TokenConverter, Ownable {
 
         // Check that the player has transferred the token to this contract
         require(from.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
-        require(to.approve(kyber, srcQty));     
+        require(to.approve(kyber, srcQty), "Without allowance to tokenQty");     
 
         uint minConversionRate = this.getReturn(from, to, srcQty);
 
         ERC20 srcToken = ERC20(from);
         ERC20 destToken = ERC20(to);
 
-        if (from == ETH_ADDRESS && to != ETH_ADDRESS)
+        if (from == ETH_ADDRESS && to != ETH_ADDRESS) {
+            require(msg.value == srcQty, "msg.value is not equal to srcQty");
             destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
-        else if (from != ETH_ADDRESS && to == ETH_ADDRESS)
+            require(destToken.transfer(msg.sender, destAmount), "Error sending tokens (swapEtherToToken)");
+        } else if (from != ETH_ADDRESS && to == ETH_ADDRESS) {
             kyber.swapTokenToEther(srcToken, srcQty, minConversionRate);
-        else 
+            msg.sender.transfer(destAmount);
+        } else {
             destAmount = kyber.trade(
                 srcToken,           // srcToken
                 srcQty,             // srcQty
                 destToken,          // destToken 
-                this,               // destAddress
+                msg.sender,         // destAddress
                 MAX_UINT,           // maxDestAmount
                 minConversionRate,  // minConversionRate
                 0                   // walletId
             );
-        
-        return destAmount;
+            require(destToken.transfer(msg.sender, destAmount), "Error sending tokens (trade)");
+        }
 
+        return destAmount;
     } 
 
     function withdrawTokens(
