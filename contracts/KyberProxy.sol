@@ -8,7 +8,8 @@ import "./utils/Ownable.sol";
 
 contract KyberProxy is TokenConverter, Ownable {
     
-    uint256 private constant MAX_UINT = uint256(0) - 1;
+    uint256 constant internal MAX_UINT = uint256(0) - 1;
+    ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(ETH_ADDRESS);
 
     KyberNetworkProxy kyber;
     Token ethToken;
@@ -60,11 +61,11 @@ contract KyberProxy is TokenConverter, Ownable {
         ERC20 srcToken = ERC20(from);
         ERC20 destToken = ERC20(to);
 
-        if (from == ETH_ADDRESS && to != ETH_ADDRESS) {
+        if (srcToken == ETH_TOKEN_ADDRESS && destToken != ETH_TOKEN_ADDRESS) {
             require(msg.value == srcQty, "msg.value is not equal to srcQty");
             destAmount = kyber.swapEtherToToken.value(msg.value)(srcToken, minConversionRate);
             require(destToken.transfer(msg.sender, destAmount), "Error sending tokens (swapEtherToToken)");
-        } else if (from != ETH_ADDRESS && to == ETH_ADDRESS) {
+        } else if (srcToken != ETH_TOKEN_ADDRESS && destToken == ETH_TOKEN_ADDRESS) {
             kyber.swapTokenToEther(srcToken, srcQty, minConversionRate);
             msg.sender.transfer(destAmount);
         } else {
