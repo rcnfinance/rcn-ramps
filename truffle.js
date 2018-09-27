@@ -8,14 +8,20 @@ module.exports = {
   solc: {
     optimizer: {
       enabled: true,
-      runs: 400
+      runs: 200
     }
   },
   networks: {
     development: {
-      host: "localhost",
+      provider: new HDWalletProvider(mnemonic, 'http://localhost:8545', 0, 10),
+      host: 'localhost',
       port: 8545,
-      network_id: "*" // Match any network id
+      network_id: 5777,
+      gas: 6721975,
+      gasPrice: 20000000000,
+      confirmations: 0,
+      timeoutBlocks: 50,
+      skipDryRun: true,
     },
     ropsten: {
       provider: function () {

@@ -45,3 +45,4 @@ package-lock.json
 infura_access_token
 mnemonic
 flattened.sol
+db

@@ -1,3 +1,5 @@
+/* global artifacts, web3 */
+/* eslint-disable no-underscore-dangle, no-unused-vars */
 const TestToken = artifacts.require("./vendors/rcn/TestToken.sol");
 
 //Engine
@@ -106,8 +108,7 @@ contract('ConverterRamp', function(accounts) {
         console.log("----------------------------"); 
 
         console.log("Deploy kyber proxy.");
-        kyberProxy = await KyberProxy.new(0x0);
-        kyberProxy.setConverter(kyberProxyNetwork.address);
+        kyberProxy = await KyberProxy.new(kyberProxyNetwork.address);
         console.log(kyberProxy.address);
         console.log("----------------------------");
 
