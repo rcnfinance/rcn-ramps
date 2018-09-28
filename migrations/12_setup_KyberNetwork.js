@@ -8,6 +8,7 @@ const Reserve = artifacts.require('./vendors/kyber/KyberReserve.sol');
 const FeeBurner = artifacts.require('./vendors/kyber/FeeBurner.sol');
 const WhiteList = artifacts.require('./vendors/kyber/WhiteList.sol');
 const ExpectedRate = artifacts.require('./vendors/kyber/ExpectedRate.sol');
+const KyberProxy = artifacts.require('./KyberProxy.sol')
 
 const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
 
@@ -27,12 +28,14 @@ function tx(result, call) {
 module.exports = async (deployer) => {
   // Set the instances
   const NetworkInstance = await Network.at(Network.address);
+  const KyberProxyInstance = await KyberProxy.at(KyberProxy.address);
 
   // Setup the contract addresses of the network
   tx(await NetworkInstance.setKyberProxy(NetworkProxy.address), 'setKyberProxy()');
   tx(await NetworkInstance.setFeeBurner(FeeBurner.address), 'setFeeBurner()');
   tx(await NetworkInstance.setWhiteList(WhiteList.address), 'setWhiteList');
   tx(await NetworkInstance.setExpectedRate(ExpectedRate.address), 'setExpectedRate');
+  tx(await KyberProxyInstance.setConverter(NetworkProxy.address), 'setConverter()');
 
   // Setup network parameters
   tx(

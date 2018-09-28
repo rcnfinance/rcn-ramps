@@ -52,8 +52,9 @@ contract KyberProxy is TokenConverter, Ownable {
             execSwapTokenToToken(srcToken, srcQty, destToken, msg.sender);
         }
 
-        require(destAmount > minReturn, "Return amount too low");       
+        require(destAmount > minReturn, "Return amount too low");   
         emit Swap(msg.sender, srcToken, destToken, destAmount);
+    
         return destAmount;
     }
 
@@ -160,6 +161,10 @@ contract KyberProxy is TokenConverter, Ownable {
         KyberNetworkProxy _converter
     ) public onlyOwner returns (bool) {
         kyber = _converter;
+    }
+
+    function getConverter() public view returns (address) {
+        return address(kyber);
     }
 
     function() external payable {
