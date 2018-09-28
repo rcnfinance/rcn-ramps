@@ -3,8 +3,8 @@ pragma solidity ^0.4.19;
 
 import "./interfaces/Token.sol";
 import "./interfaces/TokenConverter.sol";
-import "./test/bancor/converter/BancorConverter.sol";
-import "./test/bancor/token/interfaces/IERC20Token.sol";
+import "./vendors/bancor/converter/BancorConverter.sol";
+import "./vendors/bancor/token/interfaces/IERC20Token.sol";
 import "./utils/Ownable.sol";
 
 contract BancorProxy is TokenConverter, Ownable {

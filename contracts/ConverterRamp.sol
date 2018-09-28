@@ -1,11 +1,7 @@
 pragma solidity ^0.4.19;
 
 import "./interfaces/TokenConverter.sol";
-import "./interfaces/NanoLoanEngine.sol";
-import "./interfaces/Token.sol";
-import "./interfaces/Oracle.sol";
-import "./interfaces/Cosigner.sol";
-import "./utils/Ownable.sol";
+import "./vendors/rcn/NanoLoanEngine.sol";
 import "./utils/LrpSafeMath.sol";
 
 contract ConverterRamp is Ownable {
@@ -124,10 +120,10 @@ contract ConverterRamp is Ownable {
         uint256 initialBalance = rcn.balanceOf(this);
         uint256 requiredRcn = getRequiredRcnLend(loanParams, oracleData, cosignerData);
         emit RequiredRcn(requiredRcn);
-
+        
         uint256 optimalSell = getOptimalSell(converter, fromToken, rcn, requiredRcn, convertRules[I_MARGIN_SPEND]);
         emit OptimalSell(fromToken, optimalSell);
-
+        
         pullAmount(fromToken, optimalSell);
         uint256 bought = convertSafe(converter, fromToken, rcn, optimalSell);
 
@@ -150,6 +146,7 @@ contract ConverterRamp is Ownable {
         );
 
         require(rcn.balanceOf(this) == initialBalance, "The contract balance should not change");
+        
         return true;
     }
 

@@ -1,19 +1,32 @@
 {
   "name": "rcn-kybergateway",
   "version": "1.0.0",
-  "main": "truffle-config.js",
+  "main": "truffle.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "node --inspect-brk ./node_modules/truffle-core/cli.js test test/TestGateway.js"
+    "test": "truffle test",
+    "migrate": "truffle migrate"
+  },
+  "engines": {
+    "node": ">= 8.11.4",
+    "npm": ">= 5.6.0"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "bn.js": "^4.11.8",
-    "truffle-core": "^4.1.8",
-    "web3": "^1.0.0-beta.34"
+    "compare-versions": "^3.3.0",
+    "moment": "^2.22.2",
+    "node-fetch": "^2.2.0",
+    "rlp": "^2.1.0",
+    "sha3": "^1.2.2",
+    "solc": "^0.4.24",
+    "truffle-flattener": "^1.2.6",
+    "truffle-hdwallet-provider": "^1.0.0-web3one.0",
+    "web3": "^1.0.0-beta.35",
+    "yargs": "^12.0.1"
   }
 }
