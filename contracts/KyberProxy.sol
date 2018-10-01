@@ -4,9 +4,10 @@ import "./vendors/kyber/KyberNetworkProxy.sol";
 import "./vendors/kyber/KyberNetwork.sol";
 import "./vendors/kyber/ERC20Interface.sol";
 import "./interfaces/TokenConverter.sol";
+import "./interfaces/AvailableProvider.sol";
 import "./utils/Ownable.sol";
 
-contract KyberProxy is TokenConverter, Ownable {
+contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     
     uint256 constant internal MAX_UINT = uint256(0) - 1;
     ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
@@ -20,12 +21,8 @@ contract KyberProxy is TokenConverter, Ownable {
         kyber = _kyber;
     }
 
-    function getGasPriceLimit() external view returns (uint256) {
-        return kyber.maxGasPrice();
-    }
-
-    function isAvailable() external view returns (bool) {
-        return kyber.enabled();
+    function isAvailable(uint256 gasPrice) external view returns (bool) {
+        return gasPrice < kyber.maxGasPrice() && kyber.enabled();
     }
 
     function getReturn(

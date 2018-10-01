@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./interfaces/TokenConverter.sol";
+import "./interfaces/AvailableProvider.sol";
 import "./interfaces/Token.sol";
 import "./utils/Ownable.sol";
 import "./vendors/bancor/converter/BancorGasPriceLimit.sol";
@@ -11,13 +12,8 @@ contract TokenConverterRoute is TokenConverter, Ownable {
     uint256 constant internal MAX_UINT = uint256(0) - 1;
     TokenConverter[] private converters;
     mapping (address => address) private availability;
-
-
-    constructor (TokenConverter[] _converter) public {
-        converters = _converter;
-    }
     
-    function addConverter(TokenConverter converter, address availabilityContract) onlyOwner public {
+    function addConverter(TokenConverter converter, AvailableProvider availabilityContract) onlyOwner public {
         converters.push(converter);
         availability[converter] = availabilityContract;        
     }
@@ -41,7 +37,7 @@ contract TokenConverterRoute is TokenConverter, Ownable {
         for (uint256 i = 0; i < converters.length; i++) {
             
             TokenConverter converter = TokenConverter(converters[i]);
-            if (_isAvailable(converter) && gasleft() <= _getGasPriceLimit(converter)) {
+            if (_isAvailable(converter, gasleft())) {
                 
                 uint newRate = converter.getReturn(_from, _to, _amount);
                 if  (newRate > 0 && newRate < minRate) {
@@ -56,22 +52,13 @@ contract TokenConverterRoute is TokenConverter, Ownable {
         return betterProxy;
     }
 
-    function _isAvailable(address converter) private view returns (bool) {
+    function _isAvailable(address converter, uint256 _gasPrice) private view returns (bool) {
         
         if (availability[converter] == 0x0)
-            return TokenConverter(converter).isAvailable();
-        
+            return AvailableProvider(converter).isAvailable(_gasPrice);            
+            
         //bancor workaround
-        return true;
-    }
-
-    function _getGasPriceLimit(address converter) private view returns (uint256) {
-        
-        if (availability[converter] == 0x0)
-            return TokenConverter(converter).getGasPriceLimit();
-        
-        //bancor workaround
-        return BancorGasPriceLimit(converter).gasPrice();
+        return (_gasPrice < BancorGasPriceLimit(availability[converter]).gasPrice());
     }
 
 }
