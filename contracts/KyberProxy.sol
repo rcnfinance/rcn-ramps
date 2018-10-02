@@ -14,7 +14,6 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
 
     KyberNetworkProxy kyber;
 
-    event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
 
     constructor (KyberNetworkProxy _kyber) public {
@@ -172,8 +171,6 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         return address(kyber);
     }
 
-    function() external payable {
-        emit ETHReceived(msg.sender, msg.value);
-    }
+    function() external payable {}
 	
 }
