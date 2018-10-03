@@ -20,7 +20,8 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         kyber = _kyber;
     }
 
-    function isAvailable(uint256 gasPrice) external view returns (bool) {
+    function isAvailable(address converter, uint256 gasPrice) external view returns (bool) {
+        require(converter == address(kyber), "There is no coincidence between the converts.");
         return gasPrice < kyber.maxGasPrice() && kyber.enabled();
     }
 
