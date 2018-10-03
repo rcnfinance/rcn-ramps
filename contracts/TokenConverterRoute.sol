@@ -9,7 +9,7 @@ import "./vendors/bancor/converter/BancorGasPriceLimit.sol";
 contract TokenConverterRoute is TokenConverter, Ownable {
     
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
-    uint256 constant internal MAX_UINT = uint256(0) - 1;
+    uint256 constant internal MIN_UINT = uint256(0);
     TokenConverter[] public converters;
     mapping (address => AvailableProvider) public availability;
     
@@ -69,18 +69,18 @@ contract TokenConverterRoute is TokenConverter, Ownable {
     }
     
     function _getBetterProxy(Token _from, Token _to, uint256 _amount) private view returns (address) {
-        uint minRate = MAX_UINT;
+        uint maxRate = MIN_UINT;
         address betterProxy = 0x0;
      
         uint length = converters.length;
         for (uint256 i = 0; i < length; i++) {
             
             TokenConverter converter = TokenConverter(converters[i]);
-            if (_isAvailable(converter, tx.gasprice)) {
+            if (_isAvailable(converter, _from, _to, _amount)) {
                 
                 uint newRate = converter.getReturn(_from, _to, _amount);
-                if (newRate > 0 && newRate < minRate) {
-                    minRate = newRate;
+                if (newRate > maxRate) {
+                    maxRate = newRate;
                     betterProxy = converter;
                 }
                 
@@ -91,9 +91,9 @@ contract TokenConverterRoute is TokenConverter, Ownable {
         return betterProxy;
     }
 
-    function _isAvailable(address converter, uint256 _gasPrice) private view returns (bool) {
+    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) private view returns (bool) {
         address provider = availability[converter];
-        return AvailableProvider(provider).isAvailable(_gasPrice); 
+        return AvailableProvider(provider).isAvailable(_from, _to, _amount); 
     }
 
     function() external payable {}

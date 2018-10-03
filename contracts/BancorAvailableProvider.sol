@@ -13,8 +13,8 @@ contract BancorAvailableProvider is AvailableProvider, Ownable {
         converter = _converter;
     }
 
-    function isAvailable(uint256 _gasPrice) external view returns (bool) {
-        return (_gasPrice < BancorGasPriceLimit(converter).gasPrice());
+    function isAvailable(Token _from, Token _to, uint256 _amount) external view returns (bool) {
+        return (tx.gasprice < BancorGasPriceLimit(converter).gasPrice());
     }
     
     function setConverter(address _converter) onlyOwner external {
