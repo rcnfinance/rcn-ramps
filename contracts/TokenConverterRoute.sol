@@ -9,35 +9,78 @@ import "./vendors/bancor/converter/BancorGasPriceLimit.sol";
 contract TokenConverterRoute is TokenConverter, Ownable {
     
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
-    uint256 constant internal MIN_UINT = uint256(0);
+    
     TokenConverter[] public converters;
+    
+    mapping(address => uint256) private converterToIndex;    
     mapping (address => AvailableProvider) public availability;
     
-    function addConverter(TokenConverter converter) onlyOwner external {
-        converters.push(converter);
+    event AddedConverter(address _converter);
+    event RemovedConverter(address _converter);
+    
+    /*
+     *  @notice External function isWorker.
+     *  @dev Takes _worker, checks if the worker is valid. 
+     *  @param _worker Worker address.
+     *  @return bool True if worker is valid, false otherwise.
+     */
+    function issetConverter(address _converter) private view returns (bool) {
+        return converterToIndex[_converter] != 0;
     }
     
-    function addAvailableProvider(TokenConverter converter, AvailableProvider availabilityContract) onlyOwner external {
-        availability[converter] = availabilityContract;        
-    }
-    
-    function removeConverter(address converter) onlyOwner public returns (bool) {
-        
-        require(converter != address(0), "The address to remove not is available.");
-        uint length = converters.length;
-        require(length > 0, "Not exist element for remove.");
-        
-        for (uint i = 0; i < length; i++) {
-            if (converters[i] == converter) {
-                converters[i] =  converters[length-1];
-                require(1 <= length, "Reverts on overflow.");
-                converters.length--;
-                return true;
-            }
+    /*
+    *  @notice External function allConverters.
+    *  @dev Return all convertes.
+    *  @return array with all address the converters.
+    */
+    function getConverters() external view returns (address[] memory result) {
+        result = new address[](converters.length - 1);
+        for (uint256 i = 1; i < converters.length; i++) {
+            result[i - 1] = converters[i];
         }
-        
-        return false;
-        
+    }
+    
+    /*
+     *  @notice External function addConverter.
+     *  @dev Takes _converter.
+     *       Add converter.
+     *  @param _converter Converter address.
+     *  @return bool True if converter is added, false otherwise.
+     */
+    function addConverter(TokenConverter _converter) external onlyOwner returns (bool) {
+        require(!issetConverter(_converter), "The converter it already exist");
+        uint256 index = converters.push(_converter) - 1;
+        converterToIndex[_converter] = index;
+        emit AddedConverter(_converter);
+        return true;
+    }
+    
+    /*
+     *  @notice External function removeConverter.
+     *  @dev Takes _converter and removes the converter.
+     *  @param _worker Converter address.
+     *  @return bool true if existed, false otherwise.
+     */
+    function removeConverter(address _converter) external onlyOwner returns (bool) {
+        require(issetConverter(_converter), "The converter is not exist.");
+        uint256 index = converterToIndex[_converter];
+        TokenConverter lastConverter = converters[converters.length - 1];
+        converterToIndex[lastConverter] = index;
+        converters[index] = lastConverter;
+        converters.length--;
+        delete converterToIndex[_converter];
+        emit RemovedConverter(_converter);
+        return true;
+    }
+    
+    function addAvailableProvider(TokenConverter _converter, AvailableProvider availabilityContract) onlyOwner external {
+        require(issetConverter(_converter), "The converter is not exist.");
+        availability[_converter] = availabilityContract;        
+    }
+    
+    function removeAvailableProvider(TokenConverter _converter) onlyOwner external {
+        require(issetConverter(_converter), "The converter is not exist.");
+        delete availability[_converter];    
     }
     
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
@@ -69,7 +112,7 @@ contract TokenConverterRoute is TokenConverter, Ownable {
     }
     
     function _getBetterProxy(Token _from, Token _to, uint256 _amount) private view returns (address) {
-        uint maxRate = MIN_UINT;
+        uint maxRate = 0;
         address betterProxy = 0x0;
      
         uint length = converters.length;
