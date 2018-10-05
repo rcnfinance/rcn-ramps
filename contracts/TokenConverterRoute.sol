@@ -9,11 +9,13 @@ import "./vendors/bancor/converter/BancorGasPriceLimit.sol";
 contract TokenConverterRoute is TokenConverter, Ownable {
     
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
-    
+
     TokenConverter[] public converters;
     
     mapping(address => uint256) private converterToIndex;    
     mapping (address => AvailableProvider) public availability;
+
+    uint256 extraLimit;
     
     event AddedConverter(address _converter);
     event RemovedConverter(address _converter);
@@ -110,8 +112,36 @@ contract TokenConverterRoute is TokenConverter, Ownable {
         TokenConverter converter =  TokenConverter(betterProxy);
         return converter.getReturn(_from, _to, _amount);
     }
+
+    function isSimulation() private view returns (bool) {
+        return (gasleft() > block.gaslimit); 
+    }
+    
+    function spendExtraLimitGas() private view {
+        
+        uint256 limit = 0;
+        while (limit < extraLimit) {          
+            uint256 startGas = gasleft();
+            spendgas();
+            limit += (startGas - gasleft());
+        }
+    }
+    
+    function spendgas() private pure returns(bytes o_code)  {
+        assembly {
+            o_code := mload(0x40)
+        }
+    }  
     
     function _getBetterProxy(Token _from, Token _to, uint256 _amount) private view returns (address) {
+
+        if (isSimulation()) {
+            // this is a simulation, we need a pessimistic simulation we add
+            // the extraLimit. reasons: this algorithm is not deterministic
+            // different gas depending on the best route (Kyber, Bancor, etc)
+            spendExtraLimitGas();
+        }
+
         uint maxRate = 0;
         address betterProxy = 0x0;
      
@@ -137,6 +167,10 @@ contract TokenConverterRoute is TokenConverter, Ownable {
     function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) private view returns (bool) {
         address provider = availability[converter];
         return AvailableProvider(provider).isAvailable(_from, _to, _amount); 
+    }
+
+    function setExtraLimit(uint256 _extraLimit) public onlyOwner {
+        extraLimit= _extraLimit;
     }
 
     function() external payable {}
