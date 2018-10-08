@@ -10,7 +10,7 @@ const WhiteList = artifacts.require('./vendors/kyber/WhiteList.sol');
 const ExpectedRate = artifacts.require('./vendors/kyber/ExpectedRate.sol');
 const KyberProxy = artifacts.require('./KyberProxy.sol')
 
-const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
+const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
 
 function tx(result, call) {
   const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
@@ -26,6 +26,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer) => {
+
+  if(deployer.network != "kyber") return
+
   // Set the instances
   const NetworkInstance = await Network.at(Network.address);
   const KyberProxyInstance = await KyberProxy.at(KyberProxy.address);
