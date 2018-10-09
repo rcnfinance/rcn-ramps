@@ -119,17 +119,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         uint256 limit = 0;
         while (limit < extraLimit) {          
             uint256 startGas = gasleft();
-            spendgas();
+            assembly { create() }
             limit += (startGas - gasleft());
         }
     }
-    
-    function spendgas() private pure returns(bytes o_code)  {
-        assembly {
-            o_code := mload(0x40)
-        }
-    }  
-    
+
     function _getBetterProxy(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
         if (isSimulation()) {
             // this is a simulation, we need a pessimistic simulation we add
