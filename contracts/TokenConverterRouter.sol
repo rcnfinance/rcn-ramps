@@ -55,10 +55,6 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         emit AddedConverter(_converter);
         return true;
     }
-
-    function setExtraLimit(uint256 _extraLimit) external onlyOwner {
-        extraLimit = _extraLimit;
-    }
     
     /*
      *  @notice External function removeConverter.
@@ -86,6 +82,10 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         availability[_converter] = _availabilityContract;        
     }
     
+    function setExtraLimit(uint256 _extraLimit) external onlyOwner {
+        extraLimit = _extraLimit;
+    }
+
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
         TokenConverter converter = _getBetterProxy(_from, _to, _amount);
 
