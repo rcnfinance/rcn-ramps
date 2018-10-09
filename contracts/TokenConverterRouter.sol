@@ -83,6 +83,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
     
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
+        TokenConverter converter = _getBetterProxy(_from, _to, _amount);
+
         if (_from == ETH_ADDRESS) {
             require(msg.value == _amount, "ETH not enought");
         } else {
@@ -91,16 +93,13 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             require(_from.approve(converter, _amount), "Error approving token transfer");
         }
 
-        address betterProxy = _getBetterProxy(_from, _to, _amount);        
-        TokenConverter converter = TokenConverter(betterProxy);
         uint result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
 
         if (_to == ETH_ADDRESS) {
             msg.sender.transfer(result);
         } else {
             require(_to.transfer(msg.sender, result), "Error sending tokens");
-        }   
-
+        }
     }
 
     function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
@@ -127,7 +126,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }  
     
-    function _getBetterProxy(Token _from, Token _to, uint256 _amount) private view returns (address) {
+    function _getBetterProxy(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
         if (isSimulation()) {
             // this is a simulation, we need a pessimistic simulation we add
             // the extraLimit. reasons: this algorithm is not deterministic
@@ -135,23 +134,20 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             spendExtraLimitGas();
         }
 
-        uint maxRate = 0;
-        address betterProxy = 0x0;
-     
+        uint maxRate;
+        TokenConverter converter;
+        TokenConverter betterProxy;
         uint length = converters.length;
+
         for (uint256 i = 0; i < length; i++) {
-            
-            TokenConverter converter = TokenConverter(converters[i]);
+            converter = TokenConverter(converters[i]);
             if (_isAvailable(converter, _from, _to, _amount)) {
-                
                 uint newRate = converter.getReturn(_from, _to, _amount);
                 if (newRate > maxRate) {
                     maxRate = newRate;
                     betterProxy = converter;
                 }
-                
             }
-                
         }
         
         return betterProxy;
