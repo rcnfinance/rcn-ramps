@@ -104,18 +104,24 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         } else {
             require(_to.transfer(msg.sender, result), "Error sending tokens");
         }
+
+        if (isSimulation()) {
+            // this is a simulation, we need a pessimistic simulation we add
+            // the extraLimit. reasons: this algorithm is not deterministic
+            // different gas depending on the best route (Kyber, Bancor, etc)
+            spendExtraLimitGas();
+        }
     }
 
     function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
-        address betterProxy = _getBetterProxy(_from, _to, _amount);
-        return TokenConverter(betterProxy).getReturn(_from, _to, _amount);
+        return _getBetterProxy(_from, _to, _amount).getReturn(_from, _to, _amount);
     }
 
     function isSimulation() private view returns (bool) {
         return (gasleft() > block.gaslimit); 
     }
     
-    function spendExtraLimitGas() private view {
+    function spendExtraLimitGas() internal {
         uint256 limit = 0;
         while (limit < extraLimit) {          
             uint256 startGas = gasleft();
@@ -125,13 +131,6 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function _getBetterProxy(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
-        if (isSimulation()) {
-            // this is a simulation, we need a pessimistic simulation we add
-            // the extraLimit. reasons: this algorithm is not deterministic
-            // different gas depending on the best route (Kyber, Bancor, etc)
-            spendExtraLimitGas();
-        }
-
         uint maxRate;
         TokenConverter converter;
         TokenConverter betterProxy;
