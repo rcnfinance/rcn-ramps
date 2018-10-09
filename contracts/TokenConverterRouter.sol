@@ -109,7 +109,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             // this is a simulation, we need a pessimistic simulation we add
             // the extraLimit. reasons: this algorithm is not deterministic
             // different gas depending on the best route (Kyber, Bancor, etc)
-            spendExtraLimitGas();
+            addExtraGasLimit();
         }
     }
 
@@ -121,7 +121,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         return (gasleft() > block.gaslimit); 
     }
     
-    function spendExtraLimitGas() internal {
+    function addExtraGasLimit() internal {
         uint256 limit = 0;
         while (limit < extraLimit) {          
             uint256 startGas = gasleft();
