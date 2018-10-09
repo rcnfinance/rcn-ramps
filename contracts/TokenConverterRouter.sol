@@ -55,6 +55,10 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         emit AddedConverter(_converter);
         return true;
     }
+
+    function setExtraLimit(uint256 _extraLimit) external onlyOwner {
+        extraLimit = _extraLimit;
+    }
     
     /*
      *  @notice External function removeConverter.
@@ -122,11 +126,12 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
     
     function _addExtraGasLimit() internal {
-        uint256 limit = 0;
+        uint256 limit;
+        uint256 startGas;
         while (limit < extraLimit) {          
-            uint256 startGas = gasleft();
+            startGas = gasleft();
             assembly { create() }
-            limit += (startGas - gasleft());
+            limit += startGas - gasleft();
         }
     }
 
@@ -155,10 +160,5 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         return AvailableProvider(provider).isAvailable(_from, _to, _amount); 
     }
 
-    function setExtraLimit(uint256 _extraLimit) public onlyOwner {
-        extraLimit = _extraLimit;
-    }
-
     function() external payable {}
-
 }
