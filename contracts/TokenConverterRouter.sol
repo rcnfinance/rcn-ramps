@@ -17,6 +17,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     uint256 extraLimit;
     
     event AddedConverter(address _converter);
+    event SetAvailableProvider(address _converter, address _provider);
     event RemovedConverter(address _converter);
     
     /*
@@ -76,9 +77,9 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     
     function setAvailableProvider(
         TokenConverter _converter,
-        AvailableProvider _availabilityContract
+        AvailableProvider _provider
     ) external onlyOwner {
-        require(_issetConverter(_converter), "The converter is not exist.");
+        emit SetAvailableProvider(_converter, _provider);
         availability[_converter] = _availabilityContract;        
     }
     
