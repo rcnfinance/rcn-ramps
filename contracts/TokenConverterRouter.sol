@@ -17,7 +17,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     uint256 extraLimit;
     
     event AddedConverter(address _converter);
-    event BestConverter(address _converter);
+    event Converted(address _converter, address _from, address _to, uint256 _amount, uint256 _return, uint256 _gasPrice);
     event SetAvailableProvider(address _converter, address _provider);
     event SetExtraLimit(uint256 _extraLimit);
     event RemovedConverter(address _converter);
@@ -82,7 +82,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         AvailableProvider _provider
     ) external onlyOwner {
         emit SetAvailableProvider(_converter, _provider);
-        availability[_converter] = _availabilityContract;        
+        availability[_converter] = _provider;        
     }
     
     function setExtraLimit(uint256 _extraLimit) external onlyOwner {
@@ -91,7 +91,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
-        TokenConverter converter = _getBetterProxy(_from, _to, _amount);
+        TokenConverter converter = _getBestConverter(_from, _to, _amount);
 
         if (_from == ETH_ADDRESS) {
             require(msg.value == _amount, "ETH not enought");
@@ -101,7 +101,17 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             require(_from.approve(converter, _amount), "Error approving token transfer");
         }
 
-        uint result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
+        uint256 result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
+        require(result >= _minReturn, "Funds received not enought");
+
+        emit Converted({
+            _converter: converter,
+            _from: _from,
+            _to: _to,
+            _amount: _amount,
+            _return: result,
+            _gasPrice: tx.gasprice
+        });
 
         if (_from != ETH_ADDRESS) {
             require(_from.approve(converter, 0), "Error removing approve");
@@ -122,27 +132,29 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
-        return _getBetterProxy(_from, _to, _amount).getReturn(_from, _to, _amount);
+        return _getBestConverter(_from, _to, _amount).getReturn(_from, _to, _amount);
     }
 
     function _isSimulation() internal view returns (bool) {
         return gasleft() > block.gaslimit;
     }
     
-    function _addExtraGasLimit() internal {
+    function _addExtraGasLimit() internal view {
         uint256 limit;
         uint256 startGas;
         while (limit < extraLimit) {          
             startGas = gasleft();
-            assembly { create() }
+            assembly {
+                let x := mload(0x0)
+            }
             limit += startGas - gasleft();
         }
     }
 
-    function _getBetterProxy(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
+    function _getBestConverter(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
         uint maxRate;
         TokenConverter converter;
-        TokenConverter betterProxy;
+        TokenConverter best;
         uint length = converters.length;
 
         for (uint256 i = 0; i < length; i++) {
@@ -151,13 +163,12 @@ contract TokenConverterRouter is TokenConverter, Ownable {
                 uint newRate = converter.getReturn(_from, _to, _amount);
                 if (newRate > maxRate) {
                     maxRate = newRate;
-                    betterProxy = converter;
+                    best = converter;
                 }
             }
         }
         
-        event BestConverter(betterProxy);
-        return betterProxy;
+        return best;
     }
 
     function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
