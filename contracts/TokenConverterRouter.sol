@@ -142,7 +142,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         uint length = converters.length;
 
         for (uint256 i = 0; i < length; i++) {
-            converter = TokenConverter(converters[i]);
+            converter = converters[i];
             if (_isAvailable(converter, _from, _to, _amount)) {
                 uint newRate = converter.getReturn(_from, _to, _amount);
                 if (newRate > maxRate) {
