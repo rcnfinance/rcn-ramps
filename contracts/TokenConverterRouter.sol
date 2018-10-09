@@ -122,7 +122,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function _isSimulation() internal view returns (bool) {
-        return (gasleft() > block.gaslimit); 
+        return gasleft() > block.gaslimit;
     }
     
     function _addExtraGasLimit() internal {
