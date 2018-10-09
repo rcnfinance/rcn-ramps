@@ -17,7 +17,9 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     uint256 extraLimit;
     
     event AddedConverter(address _converter);
+    event BestConverter(address _converter);
     event SetAvailableProvider(address _converter, address _provider);
+    event SetExtraLimit(uint256 _extraLimit);
     event RemovedConverter(address _converter);
     
     /*
@@ -84,6 +86,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
     
     function setExtraLimit(uint256 _extraLimit) external onlyOwner {
+        emit SetExtraLimit(_extraLimit);
         extraLimit = _extraLimit;
     }
 
@@ -153,6 +156,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             }
         }
         
+        event BestConverter(betterProxy);
         return betterProxy;
     }
 
