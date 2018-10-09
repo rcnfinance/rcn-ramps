@@ -95,6 +95,10 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
         uint result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
 
+        if (_from != ETH_ADDRESS) {
+            require(_from.approve(converter, 0), "Error removing approve");
+        }
+
         if (_to == ETH_ADDRESS) {
             msg.sender.transfer(result);
         } else {
