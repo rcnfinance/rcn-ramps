@@ -74,14 +74,12 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         return true;
     }
     
-    function addAvailableProvider(TokenConverter _converter, AvailableProvider availabilityContract) onlyOwner external {
+    function setAvailableProvider(
+        TokenConverter _converter,
+        AvailableProvider availabilityContract
+    ) external onlyOwner {
         require(issetConverter(_converter), "The converter is not exist.");
         availability[_converter] = availabilityContract;        
-    }
-    
-    function removeAvailableProvider(TokenConverter _converter) onlyOwner external {
-        require(issetConverter(_converter), "The converter is not exist.");
-        delete availability[_converter];    
     }
     
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
