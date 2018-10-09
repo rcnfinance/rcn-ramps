@@ -156,8 +156,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
-        address provider = availability[converter];
-        return AvailableProvider(provider).isAvailable(_from, _to, _amount); 
+        AvailableProvider provider = availability[converter];
+        return provider != address(0) ? provider.isAvailable(_from, _to, _amount) : true;
     }
 
     function() external payable {}
