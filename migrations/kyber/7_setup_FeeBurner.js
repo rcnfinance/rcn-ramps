@@ -5,7 +5,7 @@ const fs = require('fs');
 const Reserve = artifacts.require('./vendors/kyber/KyberReserve.sol');
 const FeeBurner = artifacts.require('./vendors/kyber/FeeBurner.sol');
 
-const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
+const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
 
 function tx(result, call) {
   const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
@@ -21,6 +21,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer, network, accounts) => {
+
+  if(deployer.network != "kyber") return
+
   const reserveWallet = accounts[5];
   const taxWallet = accounts[6];
 

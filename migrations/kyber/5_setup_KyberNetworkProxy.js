@@ -17,6 +17,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer) => {
+
+  if(deployer.network != "kyber") return
+
   // Set the instances
   const NetworkProxyInstance = await NetworkProxy.at(NetworkProxy.address);
 

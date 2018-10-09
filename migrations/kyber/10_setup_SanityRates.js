@@ -9,8 +9,8 @@ const RCN = artifacts.require('./vendors/mocks/RcnToken.sol');
 const MANA = artifacts.require('./vendors/mocks/ManaToken.sol');
 const ZIL = artifacts.require('./vendors/mocks/ZilliqaToken.sol');
 
-const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
-const tokenConfig = JSON.parse(fs.readFileSync('../config/tokens.json', 'utf8'));
+const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
+const tokenConfig = JSON.parse(fs.readFileSync('../../config/tokens.json', 'utf8'));
 
 function tx(result, call) {
   const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
@@ -26,6 +26,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer, network, accounts) => {
+
+  if(deployer.network != "kyber") return
+
   const operator = accounts[1];
   const reasonableDiffs = [];
   const sanityRates = [];

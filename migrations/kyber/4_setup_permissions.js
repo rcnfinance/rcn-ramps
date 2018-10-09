@@ -22,6 +22,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer, network, accounts) => {
+
+  if(deployer.network != "kyber") return
+
   const operator = accounts[1];
   const alerter = accounts[2];
 

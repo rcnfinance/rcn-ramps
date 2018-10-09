@@ -13,6 +13,9 @@ const KGT = artifacts.require('./vendors/mock/KyberGenesisToken.sol');
 const KyberProxy = artifacts.require('./KyberProxy.sol');
 
 module.exports = async (deployer, network, accounts) => {
+
+  if(deployer.network != "kyber") return
+
   const admin = accounts[0];
 
   // Deploy the contracts

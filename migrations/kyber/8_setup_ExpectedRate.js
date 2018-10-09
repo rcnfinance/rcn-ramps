@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const ExpectedRate = artifacts.require('./vendors/kyber/ExpectedRate.sol');
 
-const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
+const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
 
 function tx(result, call) {
   const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
@@ -20,6 +20,9 @@ function tx(result, call) {
 }
 
 module.exports = async (deployer, network, accounts) => {
+
+  if(deployer.network != "kyber") return
+
   const operator = accounts[1];
 
   // Set the instances
