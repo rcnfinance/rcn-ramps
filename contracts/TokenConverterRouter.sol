@@ -76,10 +76,10 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     
     function setAvailableProvider(
         TokenConverter _converter,
-        AvailableProvider availabilityContract
+        AvailableProvider _availabilityContract
     ) external onlyOwner {
         require(issetConverter(_converter), "The converter is not exist.");
-        availability[_converter] = availabilityContract;        
+        availability[_converter] = _availabilityContract;        
     }
     
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
@@ -92,7 +92,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
 
         address betterProxy = _getBetterProxy(_from, _to, _amount);        
-        TokenConverter converter =  TokenConverter(betterProxy);
+        TokenConverter converter = TokenConverter(betterProxy);
         uint result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
 
         if (_to == ETH_ADDRESS) {
@@ -105,8 +105,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
     function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
         address betterProxy = _getBetterProxy(_from, _to, _amount);
-        TokenConverter converter =  TokenConverter(betterProxy);
-        return converter.getReturn(_from, _to, _amount);
+        return TokenConverter(betterProxy).getReturn(_from, _to, _amount);
     }
 
     function isSimulation() private view returns (bool) {
