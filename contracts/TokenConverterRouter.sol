@@ -25,7 +25,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
      *  @param _worker Worker address.
      *  @return bool True if worker is valid, false otherwise.
      */
-    function issetConverter(address _converter) private view returns (bool) {
+    function _issetConverter(address _converter) internal view returns (bool) {
         return converterToIndex[_converter] != 0;
     }
     
@@ -49,7 +49,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
      *  @return bool True if converter is added, false otherwise.
      */
     function addConverter(TokenConverter _converter) external onlyOwner returns (bool) {
-        require(!issetConverter(_converter), "The converter it already exist");
+        require(!_issetConverter(_converter), "The converter it already exist");
         uint256 index = converters.push(_converter) - 1;
         converterToIndex[_converter] = index;
         emit AddedConverter(_converter);
@@ -63,7 +63,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
      *  @return bool true if existed, false otherwise.
      */
     function removeConverter(address _converter) external onlyOwner returns (bool) {
-        require(issetConverter(_converter), "The converter is not exist.");
+        require(_issetConverter(_converter), "The converter is not exist.");
         uint256 index = converterToIndex[_converter];
         TokenConverter lastConverter = converters[converters.length - 1];
         converterToIndex[lastConverter] = index;
@@ -78,7 +78,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         TokenConverter _converter,
         AvailableProvider _availabilityContract
     ) external onlyOwner {
-        require(issetConverter(_converter), "The converter is not exist.");
+        require(_issetConverter(_converter), "The converter is not exist.");
         availability[_converter] = _availabilityContract;        
     }
     
@@ -105,11 +105,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             require(_to.transfer(msg.sender, result), "Error sending tokens");
         }
 
-        if (isSimulation()) {
+        if (_isSimulation()) {
             // this is a simulation, we need a pessimistic simulation we add
             // the extraLimit. reasons: this algorithm is not deterministic
             // different gas depending on the best route (Kyber, Bancor, etc)
-            addExtraGasLimit();
+            _addExtraGasLimit();
         }
     }
 
@@ -117,11 +117,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         return _getBetterProxy(_from, _to, _amount).getReturn(_from, _to, _amount);
     }
 
-    function isSimulation() private view returns (bool) {
+    function _isSimulation() internal view returns (bool) {
         return (gasleft() > block.gaslimit); 
     }
     
-    function addExtraGasLimit() internal {
+    function _addExtraGasLimit() internal {
         uint256 limit = 0;
         while (limit < extraLimit) {          
             uint256 startGas = gasleft();
@@ -150,7 +150,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         return betterProxy;
     }
 
-    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) private view returns (bool) {
+    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
         address provider = availability[converter];
         return AvailableProvider(provider).isAvailable(_from, _to, _amount); 
     }
