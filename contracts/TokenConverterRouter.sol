@@ -17,7 +17,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     uint256 extraLimit;
     
     event AddedConverter(address _converter);
-    event Converted(address _converter, address _from, address _to, uint256 _amount, uint256 _return, uint256 _gasPrice);
+    event Converted(address _converter, address _from, address _to, uint256 _amount, uint256 _return);
     event SetAvailableProvider(address _converter, address _provider);
     event SetExtraLimit(uint256 _extraLimit);
     event RemovedConverter(address _converter);
@@ -109,8 +109,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             _from: _from,
             _to: _to,
             _amount: _amount,
-            _return: result,
-            _gasPrice: tx.gasprice
+            _return: result
         });
 
         if (_from != ETH_ADDRESS) {
