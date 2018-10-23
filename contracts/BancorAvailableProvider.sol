@@ -7,18 +7,21 @@ import "./utils/Ownable.sol";
 
 contract BancorAvailableProvider is AvailableProvider, Ownable {
     
-    address converter; 
+    BancorGasPriceLimit gasPriceLimit;
+
+    event SetGasPriceLimitSource(address _source);
     
-    constructor (address _converter) public {
-        converter = _converter;
+    constructor (BancorGasPriceLimit _gasPriceLimit) public {
+        gasPriceLimit = _gasPriceLimit;
     }
 
-    function isAvailable(Token _from, Token _to, uint256 _amount) external view returns (bool) {
-        return (tx.gasprice < BancorGasPriceLimit(converter).gasPrice());
+    function isAvailable(Token, Token, uint256) external view returns (bool) {
+        return tx.gasprice <= gasPriceLimit.gasPrice();
     }
     
-    function setConverter(address _converter) onlyOwner external {
-        converter = _converter;
+    function setGasPriceLimit(BancorGasPriceLimit _gasPriceLimit) external onlyOwner {
+        emit SetGasPriceLimitSource(_gasPriceLimit);
+        gasPriceLimit = _gasPriceLimit;
     }
 
 }
