@@ -4,7 +4,6 @@ import "./interfaces/TokenConverter.sol";
 import "./interfaces/AvailableProvider.sol";
 import "./interfaces/Token.sol";
 import "./utils/Ownable.sol";
-import "./vendors/bancor/converter/BancorGasPriceLimit.sol";
 
 contract TokenConverterRouter is TokenConverter, Ownable {
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
