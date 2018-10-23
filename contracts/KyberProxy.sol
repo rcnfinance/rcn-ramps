@@ -7,7 +7,7 @@ import "./interfaces/TokenConverter.sol";
 import "./interfaces/AvailableProvider.sol";
 import "./utils/Ownable.sol";
 
-contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
+contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
     ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     KyberNetworkProxy kyber;
@@ -184,4 +184,8 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     }
 
     function() external payable {}
+}
+
+contract KyberProxy is KyberConverter {
+    
 }
