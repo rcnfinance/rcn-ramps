@@ -14,6 +14,9 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
 
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
 
+    event WithdrawTokens(address _token, address _to, uint256 _amount);
+    event WithdrawEth(address _to, uint256 _amount);
+
     constructor (KyberNetworkProxy _kyber) public {
         kyber = _kyber;
     }
@@ -150,6 +153,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         address _to,
         uint256 _amount
     ) external onlyOwner returns (bool) {
+        emit WithdrawTokens(_token, _to, _amount);
         return _token.transfer(_to, _amount);
     }
 
@@ -157,6 +161,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         address _to,
         uint256 _amount
     ) external onlyOwner {
+        emit WithdrawEth(_to, _amount);
         _to.transfer(_amount);
     }
 
@@ -171,5 +176,4 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     }
 
     function() external payable {}
-	
 }
