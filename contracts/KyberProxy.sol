@@ -4,20 +4,24 @@ import "./vendors/kyber/KyberNetworkProxy.sol";
 import "./vendors/kyber/KyberNetwork.sol";
 import "./vendors/kyber/ERC20Interface.sol";
 import "./interfaces/TokenConverter.sol";
+import "./interfaces/AvailableProvider.sol";
 import "./utils/Ownable.sol";
 
-contract KyberProxy is TokenConverter, Ownable {
+contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     
     uint256 constant internal MAX_UINT = uint256(0) - 1;
     ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     KyberNetworkProxy kyber;
 
-    event ETHReceived(address indexed sender, uint amount);
     event Swap(address indexed sender, ERC20 srcToken, ERC20 destToken, uint amount);
 
     constructor (KyberNetworkProxy _kyber) public {
         kyber = _kyber;
+    }
+
+    function isAvailable(Token _from, Token _to, uint256 _amount) external view returns (bool) {
+        return tx.gasprice < kyber.maxGasPrice() && kyber.enabled();
     }
 
     function getReturn(
@@ -167,8 +171,6 @@ contract KyberProxy is TokenConverter, Ownable {
         return address(kyber);
     }
 
-    function() external payable {
-        emit ETHReceived(msg.sender, msg.value);
-    }
+    function() external payable {}
 	
 }
