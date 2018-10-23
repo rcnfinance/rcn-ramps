@@ -39,10 +39,8 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         Token to, 
         uint256 srcQty
     ) external view returns (uint256) {
-        ERC20 srcToken = ERC20(from);
-        ERC20 destToken = ERC20(to);   
-        (uint256 amount,) = kyber.getExpectedRate(srcToken, destToken, srcQty);
-        return amount;
+        (uint256 rate,) = kyber.getExpectedRate(ERC20(from), ERC20(to), srcQty);
+        return (srcQty * rate) / 10 ** 18;
     }
 
     function convert(
