@@ -72,8 +72,8 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     function execSwapEtherToToken(
         ERC20 token, 
         uint srcQty,
-        address destAddress) 
-    internal returns (uint) {
+        address destAddress
+    ) internal returns (uint) {
 
         (uint minConversionRate,) = kyber.getExpectedRate(ETH_TOKEN_ADDRESS, token, srcQty);
 
