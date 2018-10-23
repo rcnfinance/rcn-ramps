@@ -17,7 +17,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     uint256 extraLimit;
     
     event AddedConverter(address _converter);
-    event Converted(address _converter, address _from, address _to, uint256 _amount, uint256 _return);
+    event Converted(address _converter, uint256 _evaluated, address _from, address _to, uint256 _amount, uint256 _return);
     event SetAvailableProvider(address _converter, address _provider);
     event SetExtraLimit(uint256 _extraLimit);
     event RemovedConverter(address _converter);
@@ -91,7 +91,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
-        TokenConverter converter = _getBestConverter(_from, _to, _amount);
+        (TokenConverter converter, uint256 evaluated) = _getBestConverter(_from, _to, _amount);
 
         if (_from == ETH_ADDRESS) {
             require(msg.value == _amount, "ETH not enought");
@@ -109,7 +109,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             _from: _from,
             _to: _to,
             _amount: _amount,
-            _return: result
+            _return: result,
+            _evaluated: evaluated
         });
 
         if (_from != ETH_ADDRESS) {
@@ -131,7 +132,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
-        return _getBestConverter(_from, _to, _amount).getReturn(_from, _to, _amount);
+        (TokenConverter best, ) = _getBestConverter(_from, _to, _amount);
+        return best.getReturn(_from, _to, _amount);
     }
 
     function _isSimulation() internal view returns (bool) {
@@ -150,15 +152,17 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }
 
-    function _getBestConverter(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter) {
+    function _getBestConverter(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter, uint256) {
         uint maxRate;
         TokenConverter converter;
         TokenConverter best;
         uint length = converters.length;
+        uint256 evaluated;
 
         for (uint256 i = 0; i < length; i++) {
             converter = converters[i];
             if (_isAvailable(converter, _from, _to, _amount)) {
+                evaluated++;
                 uint newRate = converter.getReturn(_from, _to, _amount);
                 if (newRate > maxRate) {
                     maxRate = newRate;
@@ -167,7 +171,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             }
         }
         
-        return best;
+        return (best, evaluated);
     }
 
     function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
