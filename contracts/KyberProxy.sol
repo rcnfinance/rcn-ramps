@@ -57,13 +57,13 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
 
         if (srcToken == ETH_TOKEN_ADDRESS && destToken != ETH_TOKEN_ADDRESS) {
             require(msg.value == srcQty, "ETH not enought");
-            execSwapEtherToToken(srcToken, srcQty, msg.sender);
+            destAmount = execSwapEtherToToken(destToken, srcQty, msg.sender);
         } else if (srcToken != ETH_TOKEN_ADDRESS && destToken == ETH_TOKEN_ADDRESS) {
             require(msg.value == 0, "ETH not required");    
-            execSwapTokenToEther(srcToken, srcQty, destToken);
+            destAmount = execSwapTokenToEther(srcToken, srcQty, msg.sender);
         } else {
             require(msg.value == 0, "ETH not required");    
-            execSwapTokenToToken(srcToken, srcQty, destToken, msg.sender);
+            destAmount = execSwapTokenToToken(srcToken, srcQty, destToken, msg.sender);
         }
 
         require(destAmount > minReturn, "Return amount too low");   
@@ -89,7 +89,6 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         require(token.transfer(destAddress, destAmount), "Error sending tokens");
 
         return destAmount;
-
     }
 
     /*
