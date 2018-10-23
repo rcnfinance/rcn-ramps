@@ -8,8 +8,6 @@ import "./interfaces/AvailableProvider.sol";
 import "./utils/Ownable.sol";
 
 contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
-    
-    uint256 constant internal MAX_UINT = uint256(0) - 1;
     ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     KyberNetworkProxy kyber;
