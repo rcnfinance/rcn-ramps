@@ -79,7 +79,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         uint destAmount = kyber.swapEtherToToken.value(srcQty)(token, minConversionRate);
 
         // Send the swapped tokens to the destination address
-        require(token.transfer(destAddress, destAmount));
+        require(token.transfer(destAddress, destAmount), "Error sending tokens");
 
         return destAmount;
 
@@ -101,7 +101,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         require(token.transferFrom(msg.sender, this, tokenQty), "Error pulling tokens");
 
         // Set the spender's token allowance to tokenQty
-        require(token.approve(kyber, tokenQty));
+        require(token.approve(kyber, tokenQty), "Error pulling tokens");
 
         (uint minConversionRate,) = kyber.getExpectedRate(token, ETH_TOKEN_ADDRESS, tokenQty);
 
@@ -109,7 +109,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         uint destAmount = kyber.swapTokenToEther(token, tokenQty, minConversionRate);
 
         // Send the swapped ETH to the destination address
-        destAddress.transfer(destAmount);
+        require(destAddress.send(destAmount), "Error sending ETH");
 
         return destAmount;
 
@@ -133,7 +133,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         require(srcToken.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
 
         // Set the spender's token allowance to tokenQty
-        require(srcToken.approve(kyber, srcQty));
+        require(srcToken.approve(kyber, srcQty), "Error approve transfer tokens");
 
         (uint minConversionRate,) = kyber.getExpectedRate(srcToken, ETH_TOKEN_ADDRESS, srcQty);
 
@@ -141,7 +141,7 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
         uint destAmount = kyber.swapTokenToToken(srcToken, srcQty, destToken, minConversionRate);
 
         // Send the swapped tokens to the destination address
-        require(destToken.transfer(destAddress, destAmount));
+        require(destToken.transfer(destAddress, destAmount), "Error sending tokens");
 
         return destAmount;
     }
