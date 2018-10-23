@@ -82,11 +82,8 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         uint srcQty,
         address destAddress
     ) internal returns (uint) {
-
-        (uint minConversionRate,) = kyber.getExpectedRate(ETH_TOKEN_ADDRESS, token, srcQty);
-
         // Swap the ETH to ERC20 token
-        uint destAmount = kyber.swapEtherToToken.value(srcQty)(token, minConversionRate);
+        uint destAmount = kyber.swapEtherToToken.value(srcQty)(token, 0);
 
         // Send the swapped tokens to the destination address
         require(token.transfer(destAddress, destAmount), "Error sending tokens");
@@ -113,10 +110,8 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         // Set the spender's token allowance to tokenQty
         require(token.approve(kyber, tokenQty), "Error pulling tokens");
 
-        (uint minConversionRate,) = kyber.getExpectedRate(token, ETH_TOKEN_ADDRESS, tokenQty);
-
         // Swap the ERC20 token to ETH
-        uint destAmount = kyber.swapTokenToEther(token, tokenQty, minConversionRate);
+        uint destAmount = kyber.swapTokenToEther(token, tokenQty, 0);
 
         // Send the swapped ETH to the destination address
         require(destAddress.send(destAmount), "Error sending ETH");
@@ -145,10 +140,8 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         // Set the spender's token allowance to tokenQty
         require(srcToken.approve(kyber, srcQty), "Error approve transfer tokens");
 
-        (uint minConversionRate,) = kyber.getExpectedRate(srcToken, ETH_TOKEN_ADDRESS, srcQty);
-
         // Swap the ERC20 token to ERC20
-        uint destAmount = kyber.swapTokenToToken(srcToken, srcQty, destToken, minConversionRate);
+        uint destAmount = kyber.swapTokenToToken(srcToken, srcQty, destToken, 0);
 
         // Send the swapped tokens to the destination address
         require(destToken.transfer(destAddress, destAmount), "Error sending tokens");
@@ -187,5 +180,5 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
 }
 
 contract KyberProxy is KyberConverter {
-    
+
 }
