@@ -22,6 +22,9 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     event SetExtraLimit(uint256 _extraLimit);
     event RemovedConverter(address _converter);
     
+    event WithdrawTokens(address _token, address _to, uint256 _amount);
+    event WithdrawEth(address _to, uint256 _amount);
+
     /*
      *  @notice External function isWorker.
      *  @dev Takes _worker, checks if the worker is valid. 
@@ -177,6 +180,20 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
         AvailableProvider provider = availability[converter];
         return provider != address(0) ? provider.isAvailable(_from, _to, _amount) : true;
+    }
+
+    function withdrawEther(
+        address _to,
+        uint256 _amount
+    ) external onlyOwner {
+        emit WithdrawEth(_to, _amount);
+        _to.transfer(_amount);
+    }
+
+    function setConverter(
+        KyberNetworkProxy _converter
+    ) public onlyOwner returns (bool) {
+        kyber = _converter;
     }
 
     function() external payable {}
