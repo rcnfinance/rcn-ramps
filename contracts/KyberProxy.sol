@@ -16,9 +16,17 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
 
     event WithdrawTokens(address _token, address _to, uint256 _amount);
     event WithdrawEth(address _to, uint256 _amount);
+    event SetKyber(address _kyber);
 
     constructor (KyberNetworkProxy _kyber) public {
         kyber = _kyber;
+        emit SetKyber(_kyber);
+    }
+
+    function setKyber(KyberNetworkProxy _kyber) external onlyOwner returns (bool) {
+        kyber = _kyber;
+        emit SetKyber(_kyber);
+        return true;
     }
 
     function isAvailable(Token, Token, uint256) external view returns (bool) {
