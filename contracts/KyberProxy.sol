@@ -21,7 +21,8 @@ contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     }
 
     function isAvailable(Token, Token, uint256) external view returns (bool) {
-        return tx.gasprice < kyber.maxGasPrice() && kyber.enabled();
+        KyberNetworkProxy _kyber = kyber;
+        return tx.gasprice <= _kyber.maxGasPrice() && _kyber.enabled();
     }
 
     function getReturn(
