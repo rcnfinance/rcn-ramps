@@ -12,7 +12,7 @@ module.exports = {
     }
   },
   networks: {
-    development: {
+    kyber: {
       provider: new HDWalletProvider(mnemonic, 'http://localhost:8545', 0, 10),
       host: 'localhost',
       port: 8545,
@@ -22,6 +22,11 @@ module.exports = {
       confirmations: 0,
       timeoutBlocks: 50,
       skipDryRun: true,
+    },
+    development: {
+      host: 'localhost',
+      port: 8545,
+      network_id: '*'
     },
     ropsten: {
       provider: function () {

@@ -18,10 +18,13 @@ const RCN = artifacts.require('./vendors/mocks/RcnToken.sol');
 const MANA = artifacts.require('./vendors/mocks/ManaToken.sol');
 const ZIL = artifacts.require('./vendors/mocks/ZilliqaToken.sol');
 
-const networkConfig = JSON.parse(fs.readFileSync('../config/network.json', 'utf8'));
-const tokenConfig = JSON.parse(fs.readFileSync('../config/tokens.json', 'utf8'));
+const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
+const tokenConfig = JSON.parse(fs.readFileSync('../../config/tokens.json', 'utf8'));
 
 module.exports = (deployer, network, accounts) => {
+  
+  if(deployer.network != "kyber") return
+
   console.log('\n');
 
   console.log('Network');
