@@ -190,10 +190,13 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         _to.transfer(_amount);
     }
 
-    function setConverter(
-        KyberNetworkProxy _converter
-    ) public onlyOwner returns (bool) {
-        kyber = _converter;
+    function withdrawTokens(
+        Token _token,
+        address _to,
+        uint256 _amount
+    ) external onlyOwner returns (bool) {
+        emit WithdrawTokens(_token, _to, _amount);
+        return _token.transfer(_to, _amount);
     }
 
     function() external payable {}
