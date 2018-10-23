@@ -102,7 +102,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
 
         uint256 result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
-        require(result >= _minReturn, "Funds received not enought");
+        require(result >= _minReturn, "Funds received below min return");
 
         emit Converted({
             _converter: converter,
