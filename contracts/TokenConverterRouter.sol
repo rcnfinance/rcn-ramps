@@ -22,9 +22,10 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     event RemovedConverter(address _converter);
 
     event ConverterEvaluated(address _converter, address _from, address _to, uint256 _srcQty, uint256 _destQty);
-    event ConverterNotAvailable(address _converter, address _from, address _to, uint256 _srcQty);
+    event ConverterNotAvailable(address _converter, address _provider, address _from, address _to, uint256 _srcQty);
     event ConverterError(address _converter, address _from, address _to, uint256 _srcQty);
-    
+    event ConverterAvailableError(address _converter, address _provider, address _from, address _to, uint256 _srcQty);
+
     event WithdrawTokens(address _token, address _to, uint256 _amount);
     event WithdrawEth(address _to, uint256 _amount);
 
@@ -160,7 +161,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
         for (uint256 i = 0; i < length; i++) {
             TokenConverter converter = converters[i];
-            if (_isAvailable(converter, _from, _to, _amount)) {
+            if (_isAvailableView(converter, _from, _to, _amount)) {
                 (uint256 success, bytes32 newReturn) = _safeStaticCall(
                     converter,
                     abi.encodeWithSelector(
@@ -205,16 +206,39 @@ contract TokenConverterRouter is TokenConverter, Ownable {
                 } else {
                     emit ConverterError(converter, _from, _to, _amount);
                 }
-            } else {
-                emit ConverterNotAvailable(converter, _from, _to, _amount);
             }
         }
     }
 
-    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
+    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal returns (bool) {
         AvailableProvider provider = availability[converter];
         if (provider == address(0)) return true;
         (uint256 success,bytes32 available) = _safeCall(
+            provider, abi.encodeWithSelector(
+                provider.isAvailable.selector,
+                _from,
+                _to,
+                _amount
+            )
+        );
+
+        if (success != 1) {
+            emit ConverterAvailableError(converter, provider, _from, _to, _amount);
+            return false;
+        }
+
+        if (available != bytes32(1)) {
+            emit ConverterNotAvailable(converter, provider, _from, _to, _amount);
+            return false;
+        }
+        
+        return true;
+    }
+
+    function _isAvailableView(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
+        AvailableProvider provider = availability[converter];
+        if (provider == address(0)) return true;
+        (uint256 success,bytes32 available) = _safeStaticCall(
             provider, abi.encodeWithSelector(
                 provider.isAvailable.selector,
                 _from,
