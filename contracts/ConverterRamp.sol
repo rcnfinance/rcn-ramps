@@ -272,7 +272,7 @@ contract ConverterRamp is Ownable {
             bytes32 currency = engine.getCurrency(index);
 
             (rate, decimals) = oracle.getRate(currency, oracleData);
-            toPay = (rcnToPay * (10 ** (18 - decimals + (18 * 2)) / rate)) / 10 ** 18;
+            toPay = ((rcnToPay * 1000000000000000000) / rate) / 10 ** (18 - decimals);
         }
 
         Token rcn = engine.rcn();
