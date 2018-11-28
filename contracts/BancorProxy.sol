@@ -22,6 +22,23 @@ contract BancorProxy is TokenConverter, Ownable {
         ethToken = _ethToken;
     }
 
+    function getReturnTo(
+        Token _fromToken,
+        Token _toToken,
+        uint256 _toAmount
+    ) external view returns (uint256 amount){
+        // TODO
+    }
+
+    function convertTo(
+        Token _fromToken,
+        Token _toToken,
+        uint256 _toAmount,
+        uint256 _minReturn
+    ) external payable returns (uint256 amount){
+        // TODO
+    }
+
     function setConverter(
         Token _token1,
         Token _token2,
@@ -69,11 +86,11 @@ contract BancorProxy is TokenConverter, Ownable {
         }
     }
 
-    function getReturn(Token from, Token to, uint256 sell) external view returns (uint256 amount){
-        return _getReturn(from, to, sell);
+    function getReturnFrom(Token from, Token to, uint256 sell) external view returns (uint256 amount){
+        return _getReturnFrom(from, to, sell);
     }
 
-    function _getReturn(Token _from, Token _to, uint256 sell) internal view returns (uint256 amount){
+    function _getReturnFrom(Token _from, Token _to, uint256 sell) internal view returns (uint256 amount){
         Token from = _from == ETH_ADDRESS ? Token(ethToken) : _from;
         Token to = _to == ETH_ADDRESS ? Token(ethToken) : _to;
         BancorConverter converter = converterOf[from][to];
@@ -87,24 +104,24 @@ contract BancorProxy is TokenConverter, Ownable {
             return converter.getReturn(
                 IERC20Token(router),
                 IERC20Token(to),
-                _getReturn(from, router, sell)
+                _getReturnFrom(from, router, sell)
             );
         }
         revert("No routing found - BancorProxy");
     }
 
-    function convert(Token _from, Token _to, uint256 sell, uint256 minReturn) external payable returns (uint256 amount){
+    function convertFrom(Token _from, Token _to, uint256 _fromAmount, uint256 minReturn) external payable returns (uint256 amount){
         Token from = _from == ETH_ADDRESS ? Token(ethToken) : _from;
         Token to = _to == ETH_ADDRESS ? Token(ethToken) : _to;
 
         if (from == ethToken) {
-            require(msg.value == sell, "ETH not enought");
+            require(msg.value == _fromAmount, "ETH not enought");
         } else {
             require(msg.value == 0, "ETH not required");
-            require(from.transferFrom(msg.sender, this, sell), "Error pulling tokens");
+            require(from.transferFrom(msg.sender, this, _fromAmount), "Error pulling tokens");
         }
 
-        amount = _convert(from, to, sell);
+        amount = _convertFrom(from, to, _fromAmount);
         require(amount > minReturn, "Return amount too low");
 
         if (to == ethToken) {
@@ -114,25 +131,25 @@ contract BancorProxy is TokenConverter, Ownable {
         }
     }
 
-    function _convert(
+    function _convertFrom(
         Token from,
-        Token to,   
-        uint256 sell
+        Token to,
+        uint256 _fromAmount
     ) internal returns (uint256) {
         BancorConverter converter = converterOf[from][to];
-        
+
         uint256 amount;
         if (converter != address(0)) {
             amount = converter.quickConvert
-                .value(from == ethToken ? sell : 0)(
+                .value(from == ethToken ? _fromAmount : 0)(
                 getPath(converter, from, to),
-                sell,
+                _fromAmount,
                 1
             );
         } else {
             Token router = Token(routerOf[from][to]);
             if (router != address(0)) {
-                uint256 routerAmount = _convert(from, router, sell);
+                uint256 routerAmount = _convertFrom(from, router, _fromAmount);
                 converter = converterOf[router][to];
                 amount = converter.quickConvert
                     .value(router == ethToken ? routerAmount : 0)(
@@ -144,7 +161,7 @@ contract BancorProxy is TokenConverter, Ownable {
         }
 
         return amount;
-    } 
+    }
 
     function withdrawTokens(
         Token _token,
