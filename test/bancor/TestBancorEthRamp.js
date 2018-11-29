@@ -131,7 +131,7 @@ contract('ConverterRampEth', function (accounts) {
                 Helper.address0x, // Contract of the oracle
                 borrower, // Borrower of the loan (caller of this method)
                 Helper.address0x, // Currency of the loan is RCN
-                web3.toWei(500), // Requested 500 RCN
+                toWei(500), // Requested 500 RCN
                 Helper.toInterestRate(20), // interest rate
                 Helper.toInterestRate(30), // punitory interest rate
                 bn(86400).mul(bn(90)), // Duration of the loan, 6 months
@@ -215,7 +215,7 @@ contract('ConverterRampEth', function (accounts) {
                 bancorOracle.address, // Contract of the oracle
                 borrower, // Borrower of the loan (caller of this method)
                 bntCurrency, // Currency of the loan, bnt
-                web3.toWei(500), // Requested 500 RCN
+                toWei(500), // Requested 500 RCN
                 Helper.toInterestRate(20), // interest rate
                 Helper.toInterestRate(30), // punitory interest rate
                 bn(86400).mul(bn(90)), // Duration of the loan, 6 months
@@ -299,7 +299,7 @@ contract('ConverterRampEth', function (accounts) {
                 bancorOracle.address, // Contract of the oracle
                 borrower, // Borrower of the loan (caller of this method)
                 bntCurrency, // Currency of the loan, bnt
-                web3.toWei(500), // Requested 500 RCN
+                toWei(500), // Requested 500 RCN
                 Helper.toInterestRate(20), // interest rate
                 Helper.toInterestRate(30), // punitory interest rate
                 bn(86400).mul(bn(90)), // Duration of the loan, 6 months
