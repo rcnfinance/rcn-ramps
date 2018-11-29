@@ -41,9 +41,9 @@ contract('ConverterRampEth', function (accounts) {
     let converterRamp;
     let bancorProxy;
 
-    // bancor converters
+    // bancor converter
     let converter;
-    // tokens tokens
+    // tokens
     let rcn;
     let bnt;
     let smartToken;
