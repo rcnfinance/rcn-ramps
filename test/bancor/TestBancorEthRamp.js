@@ -49,22 +49,18 @@ contract('ConverterRampEth', function (accounts) {
     let smartToken;
 
     // accounts
-    let borrower;
-    let lender;
-    let signer;
-    let payer;
+    const borrower = accounts[0];
+    const lender = accounts[2];
+    const payer = accounts[3];
+    const signer = accounts[4];
 
     before('Deploy Tokens, Bancor, Converter, Ramp', async function () {
         // set accounts address;
-        borrower = accounts[0];
-        lender = accounts[1];
-        payer = accounts[2];
-        signer = accounts[3];
         // Deploy BNT token
         bnt = await SmartToken.new('Not-Bancor Token', 'BNT', bn(18));
 
         // Deploy RCN token
-        rcn = await TestToken.new('Ripio Credit Network', 'RCN', bn(18), '1.1', bn(4000));
+        rcn = await TestToken.new();
 
         // Deploy RCN Engine
         rcnEngine = await NanoLoanEngine.new(rcn.address);
@@ -100,7 +96,7 @@ contract('ConverterRampEth', function (accounts) {
         await converter.addConnector(bnt.address, bn(250000), false);
         await smartToken.transferOwnership(converter.address);
         await converter.acceptTokenOwnership();
-        await rcn.createTokens(converter.address, toWei(2500000));
+        await rcn.setBalance(converter.address, toWei(2500000));
         await bnt.transfer(converter.address, toWei(3000000));
         // converter BNT-ETH
         // smartTokenEth = await SmartToken.new('ETH BNT Token', 'ETH-BNT', 18);
