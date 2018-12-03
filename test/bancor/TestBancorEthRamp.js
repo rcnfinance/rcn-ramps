@@ -55,7 +55,6 @@ contract('ConverterRampEth', function (accounts) {
     const signer = accounts[4];
 
     before('Deploy Tokens, Bancor, Converter, Ramp', async function () {
-        // set accounts address;
         // Deploy BNT token
         bnt = await SmartToken.new('Not-Bancor Token', 'BNT', bn(18));
 
