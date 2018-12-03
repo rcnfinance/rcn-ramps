@@ -86,6 +86,7 @@ contract('ConverterRamp', function (accounts) {
         await bancorNetwork.setSignerAddress(signer, { from: owner });
 
         // converter RCN-TICO
+        smartToken = await SmartToken.new('RCN TICO Token', 'RCNTICO', 18);
         await smartToken.issue(borrower, toWei(6500000), { from: owner });
         smartToken = await SmartToken.new('RCN TICO Token', 'RCNTICO', bn(18), { from: owner });
 
@@ -122,8 +123,8 @@ contract('ConverterRamp', function (accounts) {
             'CreatedLoan'
         ))._index;
 
-        await tico.setBalance(lender, loanAmount);
-        await tico.approve(converterRamp.address, loanAmount, { from: lender });
+        await tico.setBalance(lender, loanAmount.mul(bn(5)));
+        await tico.approve(converterRamp.address, loanAmount.mul(bn(5)), { from: lender });
 
         const lendLoanParams = [
             Helper.toBytes32(rcnEngine.address),
