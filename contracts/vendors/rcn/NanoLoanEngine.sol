@@ -106,7 +106,7 @@ contract Ownable {
     address public owner;
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "NanoLoanEngine 109");
         _;
     }
 
@@ -120,7 +120,7 @@ contract Ownable {
         @param _to Address of the new owner
     */
     function transferTo(address _to) public onlyOwner returns (bool) {
-        require(_to != address(0));
+        require(_to != address(0), "NanoLoanEngine 123");
         owner = _to;
         return true;
     }
@@ -182,19 +182,19 @@ contract Oracle is Ownable {
 contract RpSafeMath {
     function safeAdd(uint256 x, uint256 y) internal pure returns(uint256) {
       uint256 z = x + y;
-      require((z >= x) && (z >= y));
+      require((z >= x) && (z >= y), "NanoLoanEngine 185");
       return z;
     }
 
     function safeSubtract(uint256 x, uint256 y) internal pure returns(uint256) {
-      require(x >= y);
+      require(x >= y, "NanoLoanEngine 190");
       uint256 z = x - y;
       return z;
     }
 
     function safeMult(uint256 x, uint256 y) internal pure returns(uint256) {
       uint256 z = x * y;
-      require((x == 0)||(z/x == y));
+      require((x == 0)||(z/x == y), "NanoLoanEngine 197");
       return z;
     }
 
@@ -240,8 +240,8 @@ contract TokenLockable is RpSafeMath, Ownable {
         @param amount Amount to withdraw
     */
     function withdrawTokens(Token token, address to, uint256 amount) public onlyOwner returns (bool) {
-        require(safeSubtract(token.balanceOf(this), lockedTokens[token]) >= amount);
-        require(to != address(0));
+        require(safeSubtract(token.balanceOf(this), lockedTokens[token]) >= amount, "NanoLoanEngine 243");
+        require(to != address(0), "NanoLoanEngine 244");
         return token.transfer(to, amount);
     }
 }
@@ -423,14 +423,14 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     function createLoan(Oracle _oracleContract, address _borrower, bytes32 _currency, uint256 _amount, uint256 _interestRate,
         uint256 _interestRatePunitory, uint256 _duesIn, uint256 _cancelableAt, uint256 _expirationRequest, string _metadata) public returns (uint256) {
 
-        require(!deprecated);
-        require(_cancelableAt <= _duesIn);
-        require(_oracleContract != address(0) || _currency == 0x0);
-        require(_borrower != address(0));
-        require(_amount != 0);
-        require(_interestRatePunitory != 0);
-        require(_interestRate != 0);
-        require(_expirationRequest > block.timestamp);
+        require(!deprecated, "NanoLoanEngine 426");
+        require(_cancelableAt <= _duesIn, "NanoLoanEngine 427");
+        require(_oracleContract != address(0) || _currency == 0x0, "NanoLoanEngine 428");
+        require(_borrower != address(0), "NanoLoanEngine 429");
+        require(_amount != 0, "NanoLoanEngine 430");
+        require(_interestRatePunitory != 0, "NanoLoanEngine 431");
+        require(_interestRate != 0, "NanoLoanEngine 432");
+        require(_expirationRequest > block.timestamp, "NanoLoanEngine 433");
 
         var loan = Loan(Status.initial, _oracleContract, _borrower, 0x0, msg.sender, 0x0, _amount, 0, 0, 0, 0, _interestRate,
             _interestRatePunitory, 0, _duesIn, _currency, _cancelableAt, 0, 0x0, _expirationRequest, _metadata);
@@ -439,7 +439,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
         CreatedLoan(index, _borrower, msg.sender);
 
         bytes32 identifier = getIdentifier(index);
-        require(identifierToIndex[identifier] == 0);
+        require(identifierToIndex[identifier] == 0, "NanoLoanEngine 442");
         identifierToIndex[identifier] = index;
 
         if (msg.sender == _borrower) {
@@ -515,7 +515,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function approveLoan(uint index) public returns(bool) {
         Loan storage loan = loans[index];
-        require(loan.status == Status.initial);
+        require(loan.status == Status.initial, "NanoLoanEngine 518");
         loan.approbations[msg.sender] = true;
         ApprovedBy(index, msg.sender);
         return true;
@@ -530,7 +530,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function approveLoanIdentifier(bytes32 identifier) public returns (bool) {
         uint256 index = identifierToIndex[identifier];
-        require(index != 0);
+        require(index != 0, "NanoLoanEngine 533");
         return approveLoan(index);
     }
 
@@ -545,9 +545,9 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function registerApprove(bytes32 identifier, uint8 v, bytes32 r, bytes32 s) public returns (bool) {
         uint256 index = identifierToIndex[identifier];
-        require(index != 0);
+        require(index != 0, "NanoLoanEngine 548");
         Loan storage loan = loans[index];
-        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", identifier), v, r, s));
+        require(loan.borrower == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", identifier), v, r, s), "NanoLoanEngine 550");
         loan.approbations[loan.borrower] = true;
         ApprovedBy(index, loan.borrower);
         return true;
@@ -571,9 +571,9 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     function lend(uint index, bytes oracleData, Cosigner cosigner, bytes cosignerData) public returns (bool) {
         Loan storage loan = loans[index];
 
-        require(loan.status == Status.initial);
-        require(isApproved(index));
-        require(block.timestamp <= loan.expirationRequest);
+        require(loan.status == Status.initial, "NanoLoanEngine 574");
+        require(isApproved(index), "NanoLoanEngine 575");
+        require(block.timestamp <= loan.expirationRequest, "NanoLoanEngine 576");
 
         loan.lender = msg.sender;
         loan.dueTime = safeAdd(block.timestamp, loan.duesIn);
@@ -591,15 +591,15 @@ contract NanoLoanEngine is Ownable, TokenLockable {
         // Transfer the money to the borrower before handling the cosigner
         // so the cosigner could require a specific usage for that money.
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, loan.amount);
-        require(rcn.transferFrom(msg.sender, loan.borrower, transferValue));
+        require(rcn.transferFrom(msg.sender, loan.borrower, transferValue), "NanoLoanEngine 594");
 
         if (cosigner != address(0)) {
             // The cosigner it's temporary set to the next address (cosigner + 2), it's expected that the cosigner will
             // call the method "cosign" to accept the conditions; that method also sets the cosigner to the right
             // address. If that does not happen, the transaction fails.
             loan.cosigner = address(uint256(cosigner) + 2);
-            require(cosigner.requestCosign(this, index, cosignerData, oracleData));
-            require(loan.cosigner == address(cosigner));
+            require(cosigner.requestCosign(this, index, cosignerData, oracleData), "NanoLoanEngine 601");
+            require(loan.cosigner == address(cosigner), "NanoLoanEngine 602");
         }
 
         Lent(index, loan.lender, cosigner);
@@ -619,11 +619,11 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function cosign(uint index, uint256 cost) external returns (bool) {
         Loan storage loan = loans[index];
-        require(loan.status == Status.lent && (loan.dueTime - loan.duesIn) == block.timestamp);
-        require(loan.cosigner != address(0));
-        require(loan.cosigner == address(uint256(msg.sender) + 2));
+        require(loan.status == Status.lent && (loan.dueTime - loan.duesIn) == block.timestamp, "NanoLoanEngine 622");
+        require(loan.cosigner != address(0), "NanoLoanEngine 623");
+        require(loan.cosigner == address(uint256(msg.sender) + 2), "NanoLoanEngine 624");
         loan.cosigner = msg.sender;
-        require(rcn.transferFrom(loan.lender, msg.sender, cost));
+        require(rcn.transferFrom(loan.lender, msg.sender, cost), "NanoLoanEngine 626");
         return true;
     }
 
@@ -640,8 +640,8 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function destroy(uint index) public returns (bool) {
         Loan storage loan = loans[index];
-        require(loan.status != Status.destroyed);
-        require(msg.sender == loan.lender || (msg.sender == loan.borrower && loan.status == Status.initial));
+        require(loan.status != Status.destroyed, "NanoLoanEngine 643");
+        require(msg.sender == loan.lender || (msg.sender == loan.borrower && loan.status == Status.initial), "NanoLoanEngine 644");
         DestroyedBy(index, msg.sender);
 
         // ERC721, remove loan from circulation
@@ -664,7 +664,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function destroyIdentifier(bytes32 identifier) public returns (bool) {
         uint256 index = identifierToIndex[identifier];
-        require(index != 0);
+        require(index != 0, "NanoLoanEngine 667");
         return destroy(index);
     }
 
@@ -681,9 +681,9 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function transfer(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
-        require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer);
-        require(to != address(0));
 
+        require(msg.sender == loan.lender || msg.sender == loan.approvedTransfer, "NanoLoanEngine 685");
+        require(to != address(0), "NanoLoanEngine 686");
         loan.lender = to;
         loan.approvedTransfer = address(0);
 
@@ -720,7 +720,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
         @return true if the transfer was successfull
     */
     function transferFrom(address from, address to, uint256 index) public returns (bool) {
-        require(loans[index].lender == from);
+        require(loans[index].lender == from, "NanoLoanEngine 723");
         return transfer(to, index);
     }
 
@@ -739,7 +739,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function approve(address to, uint256 index) public returns (bool) {
         Loan storage loan = loans[index];
-        require(msg.sender == loan.lender);
+        require(msg.sender == loan.lender, "NanoLoanEngine 742");
         loan.approvedTransfer = to;
         Approval(msg.sender, to, index);
         return true;
@@ -858,7 +858,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function addInterest(uint index) public returns (bool) {
         Loan storage loan = loans[index];
-        require(loan.status == Status.lent);
+        require(loan.status == Status.lent, "NanoLoanEngine 861");
         internalAddInterest(loan, block.timestamp);
     }
 
@@ -891,7 +891,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool) {
         Loan storage loan = loans[index];
 
-        require(loan.status == Status.lent);
+        require(loan.status == Status.lent, "NanoLoanEngine 894");
         addInterest(index);
         uint256 toPay = min(getPendingAmount(index), _amount);
         PartialPayment(index, msg.sender, _from, toPay);
@@ -909,10 +909,10 @@ contract NanoLoanEngine is Ownable, TokenLockable {
         }
 
         uint256 transferValue = convertRate(loan.oracle, loan.currency, oracleData, toPay);
-        require(transferValue > 0 || toPay < _amount);
+        require(transferValue > 0 || toPay < _amount, "NanoLoanEngine 912");
 
         lockTokens(rcn, transferValue);
-        require(rcn.transferFrom(msg.sender, this, transferValue));
+        require(rcn.transferFrom(msg.sender, this, transferValue), "NanoLoanEngine 915");
         loan.lenderBalance = safeAdd(transferValue, loan.lenderBalance);
 
         return true;
@@ -934,7 +934,7 @@ contract NanoLoanEngine is Ownable, TokenLockable {
 
             (rate, decimals) = oracle.getRate(currency, data);
 
-            require(decimals <= RCN_DECIMALS);
+            require(decimals <= RCN_DECIMALS, "NanoLoanEngine 937");
             return (safeMult(safeMult(amount, rate), (10**(RCN_DECIMALS-decimals)))) / PRECISION;
         }
     }
@@ -958,9 +958,9 @@ contract NanoLoanEngine is Ownable, TokenLockable {
     */
     function withdrawal(uint index, address to, uint256 amount) public returns (bool) {
         Loan storage loan = loans[index];
-        require(msg.sender == loan.lender);
+        require(msg.sender == loan.lender, "NanoLoanEngine 961");
         loan.lenderBalance = safeSubtract(loan.lenderBalance, amount);
-        require(rcn.transfer(to, amount));
+        require(rcn.transfer(to, amount), "NanoLoanEngine 963");
         unlockTokens(rcn, amount);
         return true;
     }
