@@ -1,7 +1,7 @@
 pragma solidity ^0.4.19;
 
-import "./../../interfaces/Oracle.sol";
-import "./../kyber/ERC20Interface.sol";
+import "./../interfaces/Oracle.sol";
+
 
 contract TestOracle is Oracle {
     struct Currency {
@@ -9,11 +9,11 @@ contract TestOracle is Oracle {
         uint256 decimals;
     }
 
-    ERC20 public RCN;
+    Token public RCN;
 
     mapping (bytes32 => Currency) symbolToCurrency;
 
-    constructor(ERC20 _RCN) public {
+    constructor(Token _RCN) public {
         RCN = _RCN;
     }
 
