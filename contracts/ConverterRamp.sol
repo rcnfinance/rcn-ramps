@@ -81,7 +81,7 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         bytes _cosignerData,
         uint256[3] _convertRules
-    ) external returns (uint256) {
+    ) external view returns (uint256) {
         Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
         return _getOptimalSell(
             _converter,
@@ -98,7 +98,7 @@ contract ConverterRamp is Ownable {
         bytes32[4] _loanParams,
         bytes _oracleData,
         uint256[3] _convertRules
-    ) external returns (uint256) {
+    ) external view returns (uint256) {
         Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
         return _getOptimalSell(
             _converter,
@@ -240,12 +240,12 @@ contract ConverterRamp is Ownable {
         TokenConverter _converter,
         Token _fromToken,
         Token _toToken,
-        uint256 _fromAmount
+        uint256 _amount
     ) internal returns (uint256 bought) {
-        if (_fromToken != ETH_ADDRESS) require(_fromToken.approve(_converter, _fromAmount), "Error approving token transfer");
+        if (_fromToken != ETH_ADDRESS) require(_fromToken.approve(_converter, _amount), "Error approving token transfer");
         uint256 prevBalance = _toToken != ETH_ADDRESS ? _toToken.balanceOf(this) : address(this).balance;
-        uint256 sendEth = _fromToken == ETH_ADDRESS ? _fromAmount : 0;
-        uint256 boughtAmount = _converter.convert.value(sendEth)(_fromToken, _toToken, _fromAmount, 1);
+        uint256 sendEth = _fromToken == ETH_ADDRESS ? _amount : 0;
+        uint256 boughtAmount = _converter.convert.value(sendEth)(_fromToken, _toToken, _amount, 1);
         require(
             boughtAmount == (_toToken != ETH_ADDRESS ? _toToken.balanceOf(this) : address(this).balance) - prevBalance,
             "Bought amound does does not match"
