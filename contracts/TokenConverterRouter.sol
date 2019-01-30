@@ -5,13 +5,14 @@ import "./interfaces/AvailableProvider.sol";
 import "./interfaces/Token.sol";
 import "./utils/Ownable.sol";
 
+
 contract TokenConverterRouter is TokenConverter, Ownable {
     address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
 
     TokenConverter[] public converters;
 
     mapping(address => uint256) private converterToIndex;
-    mapping (address => AvailableProvider) public availability;
+    mapping(address => AvailableProvider) public availability;
 
     uint256 extraLimit;
 
@@ -97,7 +98,12 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         extraLimit = _extraLimit;
     }
 
-    function convert(Token _from, Token _to, uint256 _amount, uint256 _minReturn) external payable returns (uint256) {
+    function convert(
+        Token _from,
+        Token _to,
+        uint256 _amount,
+        uint256 _minReturn
+    ) external payable returns (uint256) {
         TokenConverter converter = _getBestConverter(_from, _to, _amount);
         require(converter != address(0), "No converter candidates");
 
@@ -138,7 +144,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }
 
-    function getReturn(Token _from, Token _to, uint256 _amount) external view returns (uint256) {
+    function getReturn(
+        Token _from,
+        Token _to,
+        uint256 _amount
+    ) external view returns (uint256) {
         return _getBestConverterView(_from, _to, _amount).getReturn(_from, _to, _amount);
     }
 
@@ -155,7 +165,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }
 
-    function _getBestConverterView(Token _from, Token _to, uint256 _amount) internal view returns (TokenConverter best) {
+    function _getBestConverterView(
+        Token _from,
+        Token _to,
+        uint256 _amount
+    ) internal view returns (TokenConverter best) {
         uint256 length = converters.length;
         bytes32 bestReturn;
 
@@ -180,7 +194,11 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }
 
-    function _getBestConverter(Token _from, Token _to, uint256 _amount) internal returns (TokenConverter best) {
+    function _getBestConverter(
+        Token _from,
+        Token _to,
+        uint256 _amount
+    ) internal returns (TokenConverter best) {
         uint256 length = converters.length;
         bytes32 bestReturn;
 
@@ -210,8 +228,13 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         }
     }
 
-    function _isAvailable(address converter, Token _from, Token _to, uint256 _amount) internal returns (bool) {
-        AvailableProvider provider = availability[converter];
+    function _isAvailable(
+        address _converter,
+        Token _from,
+        Token _to,
+        uint256 _amount
+    ) internal returns (bool) {
+        AvailableProvider provider = availability[_converter];
         if (provider == address(0)) return true;
         (uint256 success,bytes32 available) = _safeCall(
             provider, abi.encodeWithSelector(
@@ -223,20 +246,25 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         );
 
         if (success != 1) {
-            emit ConverterAvailableError(converter, provider, _from, _to, _amount);
+            emit ConverterAvailableError(_converter, provider, _from, _to, _amount);
             return false;
         }
 
         if (available != bytes32(1)) {
-            emit ConverterNotAvailable(converter, provider, _from, _to, _amount);
+            emit ConverterNotAvailable(_converter, provider, _from, _to, _amount);
             return false;
         }
 
         return true;
     }
 
-    function _isAvailableView(address converter, Token _from, Token _to, uint256 _amount) internal view returns (bool) {
-        AvailableProvider provider = availability[converter];
+    function _isAvailableView(
+        address _converter,
+        Token _from,
+        Token _to,
+        uint256 _amount
+    ) internal view returns (bool) {
+        AvailableProvider provider = availability[_converter];
         if (provider == address(0)) return true;
         (uint256 success,bytes32 available) = _safeStaticCall(
             provider, abi.encodeWithSelector(

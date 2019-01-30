@@ -1,0 +1,8 @@
+node_modules
+coverageEnv
+.git
+
+migrations
+contracts/vendors/kyber
+contracts/vendors/bancor
+contracts/vendors/rcn
