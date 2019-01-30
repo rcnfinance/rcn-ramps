@@ -1,7 +1,7 @@
 pragma solidity ^0.4.19;
 
 import "./interfaces/TokenConverter.sol";
-import "./vendors/rcn/NanoLoanEngine.sol";
+import "./rcn/interfaces/Engine.sol";
 import "./utils/LrpSafeMath.sol";
 
 
@@ -36,7 +36,7 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         uint256[3] _convertRules
     ) external payable returns (bool) {
-        Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
+        Token rcn = Engine(address(_loanParams[I_ENGINE])).rcn();
 
         uint256 initialBalance = rcn.balanceOf(this);
         uint256 requiredRcn = _getRequiredRcnPay(_loanParams, _oracleData);
@@ -82,7 +82,7 @@ contract ConverterRamp is Ownable {
         bytes _cosignerData,
         uint256[3] _convertRules
     ) external view returns (uint256) {
-        Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
+        Token rcn = Engine(address(_loanParams[I_ENGINE])).rcn();
         return _getOptimalSell(
             _converter,
             _fromToken,
@@ -99,7 +99,7 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         uint256[3] _convertRules
     ) external view returns (uint256) {
-        Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
+        Token rcn = Engine(address(_loanParams[I_ENGINE])).rcn();
         return _getOptimalSell(
             _converter,
             _fromToken,
@@ -117,7 +117,7 @@ contract ConverterRamp is Ownable {
         bytes _cosignerData,
         uint256[3] _convertRules
     ) external payable returns (bool) {
-        Token rcn = NanoLoanEngine(address(_loanParams[I_ENGINE])).rcn();
+        Token rcn = Engine(address(_loanParams[I_ENGINE])).rcn();
         uint256 initialBalance = rcn.balanceOf(this);
         uint256 requiredRcn = _getRequiredRcnLend(_loanParams, _oracleData, _cosignerData);
         emit RequiredRcn(requiredRcn);
@@ -259,7 +259,7 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         uint256 _rcnToPay
     ) internal returns (bool) {
-        NanoLoanEngine engine = NanoLoanEngine(address(_params[I_ENGINE]));
+        Engine engine = Engine(address(_params[I_ENGINE]));
         uint256 index = uint256(_params[I_INDEX]);
         Oracle oracle = engine.getOracle(index);
 
@@ -289,16 +289,16 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         bytes _cosignerData
     ) internal returns (bool) {
-        NanoLoanEngine engine = NanoLoanEngine(address(_params[I_ENGINE]));
+        Engine engine = Engine(address(_params[I_ENGINE]));
         uint256 index = uint256(_params[I_INDEX]);
-        return engine.lend(index, _oracleData, Cosigner(address(_params[I_LEND_COSIGNER])), _cosignerData);
+        return engine.lend(index, _oracleData, CosignerBasalt(address(_params[I_LEND_COSIGNER])), _cosignerData);
     }
 
     function _executeTransfer(
         bytes32[3] memory _params,
         address _to
     ) internal returns (bool) {
-        return NanoLoanEngine(address(_params[I_ENGINE])).transfer(_to, uint256(_params[1]));
+        return Engine(address(_params[I_ENGINE])).transfer(_to, uint256(_params[1]));
     }
 
     function _applyRate(
@@ -313,9 +313,9 @@ contract ConverterRamp is Ownable {
         bytes _oracleData,
         bytes _cosignerData
     ) internal view returns (uint256 required) {
-        NanoLoanEngine engine = NanoLoanEngine(address(_params[I_ENGINE]));
+        Engine engine = Engine(address(_params[I_ENGINE]));
         uint256 index = uint256(_params[I_INDEX]);
-        Cosigner cosigner = Cosigner(address(_params[I_LEND_COSIGNER]));
+        CosignerBasalt cosigner = CosignerBasalt(address(_params[I_LEND_COSIGNER]));
 
         if (cosigner != address(0)) {
             required += cosigner.cost(engine, index, _cosignerData, _oracleData);
@@ -327,7 +327,7 @@ contract ConverterRamp is Ownable {
         bytes32[4] memory _params,
         bytes _oracleData
     ) internal view returns (uint256) {
-        NanoLoanEngine engine = NanoLoanEngine(address(_params[I_ENGINE]));
+        Engine engine = Engine(address(_params[I_ENGINE]));
         uint256 index = uint256(_params[I_INDEX]);
         uint256 amount = uint256(_params[I_PAY_AMOUNT]);
         return engine.convertRate(engine.getOracle(index), engine.getCurrency(index), _oracleData, amount);
