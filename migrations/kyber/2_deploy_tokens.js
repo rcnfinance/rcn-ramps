@@ -6,13 +6,12 @@ const MANA = artifacts.require('./vendors/mock/ManaToken.sol');
 const ZIL = artifacts.require('./vendors/mock/ZilliqaToken.sol');
 
 module.exports = async (deployer) => {
+    if (deployer.network != 'kyber') return;
 
-  if(deployer.network != "kyber") return
-
-  // Deploy the tokens
-  await deployer.deploy(KNC);
-  await deployer.deploy(KGT);
-  await deployer.deploy(RCN);
-  await deployer.deploy(MANA);
-  await deployer.deploy(ZIL);
+    // Deploy the tokens
+    await deployer.deploy(KNC);
+    await deployer.deploy(KGT);
+    await deployer.deploy(RCN);
+    await deployer.deploy(MANA);
+    await deployer.deploy(ZIL);
 };

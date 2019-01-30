@@ -1,16 +1,15 @@
 /* global artifacts, web3 */
 /* eslint-disable no-underscore-dangle, no-unused-vars */
-const TestToken = artifacts.require("./vendors/rcn/TestToken.sol");
+const TestToken = artifacts.require('./vendors/rcn/TestToken.sol');
 
-//Engine
-const NanoLoanEngine = artifacts.require("./vendors/rcn/NanoLoanEngine.sol");
-
+// Engine
+const NanoLoanEngine = artifacts.require('./vendors/rcn/NanoLoanEngine.sol');
 
 // Kyber network
-const KyberProxyMock = artifacts.require("./vendors/mocks/KyberProxyMock.sol");
-const KyberOracle = artifacts.require("./vendors/rcn/KyberOracle.sol");
-const KyberNetworkProxy = artifacts.require("./vendors/kyber/KyberNetworkProxy.sol");
-const KyberProxy = artifacts.require("./KyberProxy.sol");
+const KyberProxyMock = artifacts.require('./vendors/mocks/KyberProxyMock.sol');
+const KyberOracle = artifacts.require('./vendors/rcn/KyberOracle.sol');
+const KyberNetworkProxy = artifacts.require('./vendors/kyber/KyberNetworkProxy.sol');
+const KyberProxy = artifacts.require('./KyberProxy.sol');
 
 const ConverterRamp = artifacts.require('./ConverterRamp.sol');
 
@@ -30,103 +29,100 @@ let lender;
 let signer;
 let payer;
 
-contract('ConverterRamp', function(accounts) {
-    
-    const manaCurrency = "0x4d414e4100000000000000000000000000000000000000000000000000000000";
+contract('ConverterRamp', function (accounts) {
+    const manaCurrency = '0x4d414e4100000000000000000000000000000000000000000000000000000000';
 
-    async function assertThrow(promise) {
+    async function assertThrow (promise) {
         try {
-          await promise;
+            await promise;
         } catch (error) {
-          const invalidJump = error.message.search('invalid JUMP') >= 0;
-          const revert = error.message.search('revert') >= 0;
-          const invalidOpcode = error.message.search('invalid opcode') >0;
-          const outOfGas = error.message.search('out of gas') >= 0;
-          assert(
-            invalidJump || outOfGas || revert || invalidOpcode,
-            "Expected throw, got '" + error + "' instead",
-          );
-          return;
+            const invalidJump = error.message.search('invalid JUMP') >= 0;
+            const revert = error.message.search('revert') >= 0;
+            const invalidOpcode = error.message.search('invalid opcode') > 0;
+            const outOfGas = error.message.search('out of gas') >= 0;
+            assert(
+                invalidJump || outOfGas || revert || invalidOpcode,
+                'Expected throw, got \'' + error + '\' instead',
+            );
+            return;
         }
         assert.fail('Expected throw not received');
     };
 
-    function toBytes32(source) {
+    function toBytes32 (source) {
         const rl = 64;
-        source = source.toString().replace("0x", "");
+        source = source.toString().replace('0x', '');
         if (source.length < rl) {
             const diff = 64 - source.length;
-            source = "0".repeat(diff) + source;
+            source = '0'.repeat(diff) + source;
         }
-        return "0x" + source;
+        return '0x' + source;
     }
 
-    beforeEach("Deploy Tokens, Kyber, Converter", async function(){
-        
+    beforeEach('Deploy Tokens, Kyber, Converter', async function () {
         // set accounts address;
         borrower = accounts[0];
-        console.log("Borrower: " + borrower);
+        console.log('Borrower: ' + borrower);
 
         lender = accounts[1];
-        console.log("Lender: " + lender);
+        console.log('Lender: ' + lender);
 
         payer = accounts[2];
-        console.log("Payer: " + payer);
+        console.log('Payer: ' + payer);
 
         signer = accounts[3];
-        console.log("Signer: " + signer);
-        console.log("----------------------------");
+        console.log('Signer: ' + signer);
+        console.log('----------------------------');
 
-        console.log("Deploy MANA token.");
-        mana = await TestToken.new("MANA", "MANA", 18, "1.0", 6000);
+        console.log('Deploy MANA token.');
+        mana = await TestToken.new('MANA', 'MANA', 18, '1.0', 6000);
         console.log(mana.address);
-        console.log("----------------------------");
-        
-        console.log("Deploy RCN token.");
-        rcn = await TestToken.new("RCN", "RCN", 18, "1.1", 4000);
-        console.log(rcn.address);
-        console.log("----------------------------");
+        console.log('----------------------------');
 
-        console.log("Deploy RCN engine.");
+        console.log('Deploy RCN token.');
+        rcn = await TestToken.new('RCN', 'RCN', 18, '1.1', 4000);
+        console.log(rcn.address);
+        console.log('----------------------------');
+
+        console.log('Deploy RCN engine.');
         engine = await NanoLoanEngine.new(rcn.address);
         console.log(engine.address);
-        console.log("----------------------------");
+        console.log('----------------------------');
 
-        console.log("Deploy Ramp.");
+        console.log('Deploy Ramp.');
         converterRamp = await ConverterRamp.new();
         console.log(converterRamp.address);
-        console.log("----------------------------");
-   
-        console.log("Deploy kyber network.");
-        kyberProxyNetwork = await KyberProxyMock.new(accounts[9], mana.address, rcn.address);
+        console.log('----------------------------');
+
+        console.log('Deploy kyber network.');
+        const kyberProxyNetwork = await KyberProxyMock.new(accounts[9], mana.address, rcn.address);
         await kyberProxyNetwork.setExpectedRate(1);
         await kyberProxyNetwork.setSlippageRate(1);
         await kyberProxyNetwork.setAmount(500);
-        await mana.createTokens(kyberProxyNetwork.address, 1000000*10**18);
-        await rcn.createTokens(kyberProxyNetwork.address, 1000000*10**18);
+        await mana.createTokens(kyberProxyNetwork.address, 1000000 * 10 ** 18);
+        await rcn.createTokens(kyberProxyNetwork.address, 1000000 * 10 ** 18);
         console.log(kyberProxyNetwork.address);
-        console.log("----------------------------"); 
+        console.log('----------------------------');
 
-        console.log("Deploy kyber proxy.");
+        console.log('Deploy kyber proxy.');
         kyberProxy = await KyberProxy.new(kyberProxyNetwork.address);
         console.log(kyberProxy.address);
-        console.log("----------------------------");
+        console.log('----------------------------');
 
-        console.log("Deploy kyber oracle.");
-        kyberOracle = await KyberOracle.new()
-        await kyberOracle.setRcn(rcn.address)
-        await kyberOracle.setKyber(kyberProxy.address)
-        await kyberOracle.addCurrencyLink("MANA", mana.address, 18)
+        console.log('Deploy kyber oracle.');
+        const kyberOracle = await KyberOracle.new();
+        await kyberOracle.setRcn(rcn.address);
+        await kyberOracle.setKyber(kyberProxy.address);
+        await kyberOracle.addCurrencyLink('MANA', mana.address, 18);
         console.log(kyberOracle.address);
-        console.log("----------------------------")
-    
-        assert.equal(await kyberOracle.tickerToToken(manaCurrency), mana.address);
-        
-    })
+        console.log('----------------------------');
 
-    it("Should lend and pay using the ramp (Kyber) rcn -> mana", async() => {
+        assert.equal(await kyberOracle.tickerToToken(manaCurrency), mana.address);
+    });
+
+    it('Should lend and pay using the ramp (Kyber) rcn -> mana', async () => {
         // Create a random loan
-        let loanReceipt = await engine.createLoan(
+        const loanReceipt = await engine.createLoan(
             0x0, // Contract of the oracle
             borrower, // Borrower of the loan (caller of this method)
             0x0, // Currency of the loan is RCN
@@ -136,26 +132,26 @@ contract('ConverterRamp', function(accounts) {
             86400 * 90, // Duration of the loan, 6 months
             0, // Payment can start right away
             10 ** 40, // This request never expires
-            "Loan with emoji 🦓 :)"
+            'Loan with emoji 🦓 :)'
         );
-        
-        let loanId = 1;
+
+        const loanId = 1;
 
         await mana.createTokens(lender, 10000 * 10 ** 18);
-        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:lender});
+        await mana.approve(converterRamp.address, 10000 * 10 ** 18, { from: lender });
 
         const lendLoanParams = [
             toBytes32(engine.address),
             toBytes32(loanId.toString(16)),
-            toBytes32(0x0)
-        ]
+            toBytes32(0x0),
+        ];
 
         const convertParams = [
             50,
             0,
-            0
-        ]
-        
+            0,
+        ];
+
         await converterRamp.lend(
             kyberProxy.address,
             mana.address,
@@ -164,7 +160,7 @@ contract('ConverterRamp', function(accounts) {
             [],
             convertParams,
             {
-                from: lender
+                from: lender,
             }
         );
 
@@ -173,15 +169,15 @@ contract('ConverterRamp', function(accounts) {
         assert.equal(await engine.ownerOf(loanId), lender);
 
         await mana.createTokens(payer, 10000 * 10 ** 18);
-        await mana.approve(converterRamp.address, 10000 * 10 ** 18, {from:payer});
+        await mana.approve(converterRamp.address, 10000 * 10 ** 18, { from: payer });
 
         const payLoanParams = [
             toBytes32(engine.address),
             toBytes32(loanId.toString(16)),
             toBytes32((100 * 10 ** 18).toString(16)),
-            toBytes32(payer)
-        ]
-        
+            toBytes32(payer),
+        ];
+
         await converterRamp.pay(
             kyberProxy.address,
             mana.address,
@@ -189,9 +185,8 @@ contract('ConverterRamp', function(accounts) {
             [],
             convertParams,
             {
-                from: payer
+                from: payer,
             }
         );
-    })
-
-})
+    });
+});

@@ -13,20 +13,19 @@ const KGT = artifacts.require('./vendors/mock/KyberGenesisToken.sol');
 const KyberProxy = artifacts.require('./KyberProxy.sol');
 
 module.exports = async (deployer, network, accounts) => {
+    if (deployer.network != 'kyber') return;
 
-  if(deployer.network != "kyber") return
+    const admin = accounts[0];
 
-  const admin = accounts[0];
+    // Deploy the contracts
+    await deployer.deploy(Network, admin);
+    await deployer.deploy(NetworkProxy, admin);
+    await deployer.deploy(ConversionRates, admin);
+    await deployer.deploy(SanityRates, admin);
+    await deployer.deploy(Reserve, Network.address, ConversionRates.address, admin);
+    await deployer.deploy(FeeBurner, admin, KNC.address, Network.address);
+    await deployer.deploy(WhiteList, admin, KGT.address);
+    await deployer.deploy(ExpectedRate, Network.address, admin);
 
-  // Deploy the contracts
-  await deployer.deploy(Network, admin);
-  await deployer.deploy(NetworkProxy, admin);
-  await deployer.deploy(ConversionRates, admin);
-  await deployer.deploy(SanityRates, admin);
-  await deployer.deploy(Reserve, Network.address, ConversionRates.address, admin);
-  await deployer.deploy(FeeBurner, admin, KNC.address, Network.address);
-  await deployer.deploy(WhiteList, admin, KGT.address);
-  await deployer.deploy(ExpectedRate, Network.address, admin);
-
-  await deployer.deploy(KyberProxy, NetworkProxy.address);
+    await deployer.deploy(KyberProxy, NetworkProxy.address);
 };
