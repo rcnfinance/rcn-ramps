@@ -22,23 +22,6 @@ contract BancorProxy is TokenConverter, Ownable {
         ethToken = _ethToken;
     }
 
-    function getReturnTo(
-        Token _fromToken,
-        Token _toToken,
-        uint256 _toAmount
-    ) external view returns (uint256 amount){
-        // TODO
-    }
-
-    function convertTo(
-        Token _fromToken,
-        Token _toToken,
-        uint256 _toAmount,
-        uint256 _minReturn
-    ) external payable returns (uint256 amount){
-        // TODO
-    }
-
     function setConverter(
         Token _token1,
         Token _token2,
@@ -64,38 +47,46 @@ contract BancorProxy is TokenConverter, Ownable {
     }
 
     function clearCache(
-        Token from,
-        Token to
+        Token _from,
+        Token _to
     ) public onlyOwner returns (bool) {
-        pathCache[from][to].length = 0;
-        pathCache[to][from].length = 0;
+        pathCache[_from][_to].length = 0;
+        pathCache[_to][_from].length = 0;
         return true;
     }
 
     function getPath(
-        BancorConverter converter,
-        Token from,
-        Token to
+        BancorConverter _converter,
+        Token _from,
+        Token _to
     ) private returns (IERC20Token[]) {
-        if (pathCache[from][to].length != 0) {
-            return pathCache[from][to];
+        if (pathCache[_from][_to].length != 0) {
+            return pathCache[_from][_to];
         } else {
-            IERC20Token token = converter.token();
-            pathCache[from][to] = [IERC20Token(from), token, IERC20Token(to)];
-            return pathCache[from][to];
+            IERC20Token token = _converter.token();
+            pathCache[_from][_to] = [IERC20Token(_from), token, IERC20Token(_to)];
+            return pathCache[_from][_to];
         }
     }
 
-    function getReturnFrom(Token from, Token to, uint256 sell) external view returns (uint256 amount){
-        return _getReturnFrom(from, to, sell);
+    function getReturn(
+        Token _from,
+        Token _to,
+        uint256 _sell
+    ) external view returns (uint256 amount){
+        return _getReturn(_from, _to, _sell);
     }
 
-    function _getReturnFrom(Token _from, Token _to, uint256 sell) internal view returns (uint256 amount){
+    function _getReturn(
+        Token _from,
+        Token _to,
+        uint256 _sell
+    ) internal view returns (uint256 amount){
         Token from = _from == ETH_ADDRESS ? Token(ethToken) : _from;
         Token to = _to == ETH_ADDRESS ? Token(ethToken) : _to;
         BancorConverter converter = converterOf[from][to];
         if (converter != address(0)) {
-            return converter.getReturn(IERC20Token(from), IERC20Token(to), sell);
+            return converter.getReturn(IERC20Token(from), IERC20Token(to), _sell);
         }
 
         Token router = Token(routerOf[from][to]);
@@ -104,25 +95,30 @@ contract BancorProxy is TokenConverter, Ownable {
             return converter.getReturn(
                 IERC20Token(router),
                 IERC20Token(to),
-                _getReturnFrom(from, router, sell)
+                _getReturn(from, router, _sell)
             );
         }
         revert("No routing found - BancorProxy");
     }
 
-    function convertFrom(Token _from, Token _to, uint256 _fromAmount, uint256 minReturn) external payable returns (uint256 amount){
+    function convert(
+        Token _from,
+        Token _to,
+        uint256 _sell,
+        uint256 _minReturn
+    ) external payable returns (uint256 amount){
         Token from = _from == ETH_ADDRESS ? Token(ethToken) : _from;
         Token to = _to == ETH_ADDRESS ? Token(ethToken) : _to;
 
         if (from == ethToken) {
-            require(msg.value == _fromAmount, "ETH not enought");
+            require(msg.value == _sell, "ETH not enought");
         } else {
             require(msg.value == 0, "ETH not required");
-            require(from.transferFrom(msg.sender, this, _fromAmount), "Error pulling tokens");
+            require(from.transferFrom(msg.sender, this, _sell), "Error pulling tokens");
         }
 
-        amount = _convertFrom(from, to, _fromAmount);
-        require(amount > minReturn, "Return amount too low");
+        amount = _convert(from, to, _sell);
+        require(amount > _minReturn, "Return amount too low");
 
         if (to == ethToken) {
             msg.sender.transfer(amount);
@@ -131,29 +127,27 @@ contract BancorProxy is TokenConverter, Ownable {
         }
     }
 
-    function _convertFrom(
-        Token from,
-        Token to,
+    function _convert(
+        Token _from,
+        Token _to,
         uint256 _fromAmount
     ) internal returns (uint256) {
-        BancorConverter converter = converterOf[from][to];
+        BancorConverter converter = converterOf[_from][_to];
 
         uint256 amount;
         if (converter != address(0)) {
-            amount = converter.quickConvert
-                .value(from == ethToken ? _fromAmount : 0)(
-                getPath(converter, from, to),
+            amount = converter.quickConvert.value(_from == ethToken ? _fromAmount : 0)(
+                getPath(converter, _from, _to),
                 _fromAmount,
                 1
             );
         } else {
-            Token router = Token(routerOf[from][to]);
+            Token router = Token(routerOf[_from][_to]);
             if (router != address(0)) {
-                uint256 routerAmount = _convertFrom(from, router, _fromAmount);
-                converter = converterOf[router][to];
-                amount = converter.quickConvert
-                    .value(router == ethToken ? routerAmount : 0)(
-                    getPath(converter, router, to),
+                uint256 routerAmount = _convert(_from, router, _fromAmount);
+                converter = converterOf[router][_to];
+                amount = converter.quickConvert.value(router == ethToken ? routerAmount : 0)(
+                    getPath(converter, router, _to),
                     routerAmount,
                     1
                 );

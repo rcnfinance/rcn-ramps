@@ -8,47 +8,46 @@ const Reserve = artifacts.require('./vendors/kyber/KyberReserve.sol');
 const FeeBurner = artifacts.require('./vendors/kyber/FeeBurner.sol');
 const WhiteList = artifacts.require('./vendors/kyber/WhiteList.sol');
 const ExpectedRate = artifacts.require('./vendors/kyber/ExpectedRate.sol');
-const KyberProxy = artifacts.require('./KyberProxy.sol')
+const KyberProxy = artifacts.require('./KyberProxy.sol');
 
 const networkConfig = JSON.parse(fs.readFileSync('../../config/network.json', 'utf8'));
 
-function tx(result, call) {
-  const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
+function tx (result, call) {
+    const logs = (result.logs.length > 0) ? result.logs[0] : { address: null, event: null };
 
-  console.log();
-  console.log(`   Calling ${call}`);
-  console.log('   ------------------------');
-  console.log(`   > transaction hash: ${result.tx}`);
-  console.log(`   > contract address: ${logs.address}`);
-  console.log(`   > gas used: ${result.receipt.gasUsed}`);
-  console.log(`   > event: ${logs.event}`);
-  console.log();
+    console.log();
+    console.log(`   Calling ${call}`);
+    console.log('   ------------------------');
+    console.log(`   > transaction hash: ${result.tx}`);
+    console.log(`   > contract address: ${logs.address}`);
+    console.log(`   > gas used: ${result.receipt.gasUsed}`);
+    console.log(`   > event: ${logs.event}`);
+    console.log();
 }
 
 module.exports = async (deployer) => {
+    if (deployer.network != 'kyber') return;
 
-  if(deployer.network != "kyber") return
+    // Set the instances
+    const NetworkInstance = await Network.at(Network.address);
+    const KyberProxyInstance = await KyberProxy.at(KyberProxy.address);
 
-  // Set the instances
-  const NetworkInstance = await Network.at(Network.address);
-  const KyberProxyInstance = await KyberProxy.at(KyberProxy.address);
+    // Setup the contract addresses of the network
+    tx(await NetworkInstance.setKyberProxy(NetworkProxy.address), 'setKyberProxy()');
+    tx(await NetworkInstance.setFeeBurner(FeeBurner.address), 'setFeeBurner()');
+    tx(await NetworkInstance.setWhiteList(WhiteList.address), 'setWhiteList');
+    tx(await NetworkInstance.setExpectedRate(ExpectedRate.address), 'setExpectedRate');
+    tx(await KyberProxyInstance.setConverter(NetworkProxy.address), 'setConverter()');
 
-  // Setup the contract addresses of the network
-  tx(await NetworkInstance.setKyberProxy(NetworkProxy.address), 'setKyberProxy()');
-  tx(await NetworkInstance.setFeeBurner(FeeBurner.address), 'setFeeBurner()');
-  tx(await NetworkInstance.setWhiteList(WhiteList.address), 'setWhiteList');
-  tx(await NetworkInstance.setExpectedRate(ExpectedRate.address), 'setExpectedRate');
-  tx(await KyberProxyInstance.setConverter(NetworkProxy.address), 'setConverter()');
+    // Setup network parameters
+    tx(
+        await NetworkInstance.setParams(
+            networkConfig.KyberNetwork.maxGasPrice,
+            networkConfig.KyberNetwork.negDiffInBPS,
+        ),
+        'setParams()',
+    );
 
-  // Setup network parameters
-  tx(
-    await NetworkInstance.setParams(
-      networkConfig.KyberNetwork.maxGasPrice,
-      networkConfig.KyberNetwork.negDiffInBPS,
-    ),
-    'setParams()',
-  );
-
-  // Enable the network for swapping
-  tx(await NetworkInstance.setEnable(true), 'setEnable()');
+    // Enable the network for swapping
+    tx(await NetworkInstance.setEnable(true), 'setEnable()');
 };

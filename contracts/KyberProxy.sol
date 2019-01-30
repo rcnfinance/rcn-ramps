@@ -7,7 +7,7 @@ import "./interfaces/TokenConverter.sol";
 import "./interfaces/AvailableProvider.sol";
 import "./utils/Ownable.sol";
 
-contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
+contract KyberProxy is TokenConverter, AvailableProvider, Ownable {
     ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
     KyberNetworkProxy kyber;
@@ -23,65 +23,55 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
         emit SetKyber(_kyber);
     }
 
-    function getReturnTo(
-        Token _fromToken,
-        Token _toToken,
-        uint256 _toAmount
-    ) external view returns (uint256 amount){
-        // TODO
-    }
-
-    function convertTo(
-        Token _fromToken,
-        Token _toToken,
-        uint256 _toAmount,
-        uint256 _minReturn
-    ) external payable returns (uint256 amount){
-        // TODO
-    }
-
     function setKyber(KyberNetworkProxy _kyber) external onlyOwner returns (bool) {
         kyber = _kyber;
         emit SetKyber(_kyber);
+
         return true;
     }
 
-    function isAvailable(Token, Token, uint256) external view returns (bool) {
+    function isAvailable(
+        Token,
+        Token,
+        uint256
+    ) external view returns (bool) {
         KyberNetworkProxy _kyber = kyber;
+
         return tx.gasprice <= _kyber.maxGasPrice() && _kyber.enabled();
     }
 
     function getReturnFrom(
-        Token from,
-        Token to,
-        uint256 srcQty
+        Token _from,
+        Token _to,
+        uint256 _srcQty
     ) external view returns (uint256) {
-        (uint256 rate,) = kyber.getExpectedRate(ERC20(from), ERC20(to), srcQty);
-        return (srcQty * rate) / 10 ** 18;
+        (uint256 rate,) = kyber.getExpectedRate(ERC20(_from), ERC20(_to), _srcQty);
+
+        return (_srcQty * rate) / 10 ** 18;
     }
 
     function convertFrom(
-        Token from,
-        Token to,
-        uint256 srcQty,
-        uint256 minReturn
+        Token _from,
+        Token _to,
+        uint256 _srcQty,
+        uint256 _minReturn
     ) external payable returns (uint256 destAmount) {
 
-        ERC20 srcToken = ERC20(from);
-        ERC20 destToken = ERC20(to);
+        ERC20 srcToken = ERC20(_from);
+        ERC20 destToken = ERC20(_to);
 
         if (srcToken == ETH_TOKEN_ADDRESS && destToken != ETH_TOKEN_ADDRESS) {
-            require(msg.value == srcQty, "ETH not enought");
-            destAmount = execSwapEtherToToken(destToken, srcQty, msg.sender);
+            require(msg.value == _srcQty, "ETH not enought");
+            destAmount = execSwapEtherToToken(destToken, _srcQty, msg.sender);
         } else if (srcToken != ETH_TOKEN_ADDRESS && destToken == ETH_TOKEN_ADDRESS) {
             require(msg.value == 0, "ETH not required");
-            destAmount = execSwapTokenToEther(srcToken, srcQty, msg.sender);
+            destAmount = execSwapTokenToEther(srcToken, _srcQty, msg.sender);
         } else {
             require(msg.value == 0, "ETH not required");
-            destAmount = execSwapTokenToToken(srcToken, srcQty, destToken, msg.sender);
+            destAmount = execSwapTokenToToken(srcToken, _srcQty, destToken, msg.sender);
         }
 
-        require(destAmount > minReturn, "Return amount too low");
+        require(destAmount > _minReturn, "Return amount too low");
         emit Swap(msg.sender, srcToken, destToken, destAmount);
 
         return destAmount;
@@ -93,15 +83,15 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
     @param destAddress address to send swapped tokens to
     */
     function execSwapEtherToToken(
-        ERC20 token,
-        uint srcQty,
-        address destAddress
+        ERC20 _token,
+        uint _srcQty,
+        address _destAddress
     ) internal returns (uint) {
         // Swap the ETH to ERC20 token
-        uint destAmount = kyber.swapEtherToToken.value(srcQty)(token, 0);
+        uint destAmount = kyber.swapEtherToToken.value(_srcQty)(_token, 0);
 
         // Send the swapped tokens to the destination address
-        require(token.transfer(destAddress, destAmount), "Error sending tokens");
+        require(_token.transfer(_destAddress, destAmount), "Error sending tokens");
 
         return destAmount;
     }
@@ -113,22 +103,22 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
     @param destAddress address to send swapped ETH to
     */
     function execSwapTokenToEther(
-        ERC20 token,
-        uint256 tokenQty,
-        address destAddress
+        ERC20 _token,
+        uint256 _tokenQty,
+        address _destAddress
     ) internal returns (uint) {
 
         // Check that the player has transferred the token to this contract
-        require(token.transferFrom(msg.sender, this, tokenQty), "Error pulling tokens");
+        require(_token.transferFrom(msg.sender, this, _tokenQty), "Error pulling tokens");
 
         // Set the spender's token allowance to tokenQty
-        require(token.approve(kyber, tokenQty), "Error pulling tokens");
+        require(_token.approve(kyber, _tokenQty), "Error pulling tokens");
 
         // Swap the ERC20 token to ETH
-        uint destAmount = kyber.swapTokenToEther(token, tokenQty, 0);
+        uint destAmount = kyber.swapTokenToEther(_token, _tokenQty, 0);
 
         // Send the swapped ETH to the destination address
-        require(destAddress.send(destAmount), "Error sending ETH");
+        require(_destAddress.send(destAmount), "Error sending ETH");
 
         return destAmount;
 
@@ -142,23 +132,23 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
     @param destAddress address to send swapped tokens to
     */
     function execSwapTokenToToken(
-        ERC20 srcToken,
-        uint256 srcQty,
-        ERC20 destToken,
-        address destAddress
+        ERC20 _srcToken,
+        uint256 _srcQty,
+        ERC20 _destToken,
+        address _destAddress
     ) internal returns (uint) {
 
         // Check that the player has transferred the token to this contract
-        require(srcToken.transferFrom(msg.sender, this, srcQty), "Error pulling tokens");
+        require(_srcToken.transferFrom(msg.sender, this, _srcQty), "Error pulling tokens");
 
         // Set the spender's token allowance to tokenQty
-        require(srcToken.approve(kyber, srcQty), "Error approve transfer tokens");
+        require(_srcToken.approve(kyber, _srcQty), "Error approve transfer tokens");
 
         // Swap the ERC20 token to ERC20
-        uint destAmount = kyber.swapTokenToToken(srcToken, srcQty, destToken, 0);
+        uint destAmount = kyber.swapTokenToToken(_srcToken, _srcQty, _destToken, 0);
 
         // Send the swapped tokens to the destination address
-        require(destToken.transfer(destAddress, destAmount), "Error sending tokens");
+        require(_destToken.transfer(_destAddress, destAmount), "Error sending tokens");
 
         return destAmount;
     }
@@ -191,8 +181,4 @@ contract KyberConverter is TokenConverter, AvailableProvider, Ownable {
     }
 
     function() external payable {}
-}
-
-contract KyberProxy is KyberConverter {
-
 }
