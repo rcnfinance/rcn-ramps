@@ -7,8 +7,6 @@ import "./utils/Ownable.sol";
 
 
 contract TokenConverterRouter is TokenConverter, Ownable {
-    address public constant ETH_ADDRESS = 0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
-
     TokenConverter[] public converters;
 
     mapping(address => uint256) private converterToIndex;
