@@ -14,18 +14,18 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
     uint256 extraLimit;
 
-    event AddedConverter(address _converter);
-    event Converted(address _converter, address _from, address _to, uint256 _amount, uint256 _return);
-    event SetAvailableProvider(address _converter, address _provider);
+    event AddedConverter(TokenConverter _converter);
+    event Converted(TokenConverter _converter, Token _from, Token _to, uint256 _amount, uint256 _return);
+    event SetAvailableProvider(TokenConverter _converter, AvailableProvider _provider);
     event SetExtraLimit(uint256 _extraLimit);
-    event RemovedConverter(address _converter);
+    event RemovedConverter(TokenConverter _converter);
 
-    event ConverterEvaluated(address _converter, address _from, address _to, uint256 _srcQty, uint256 _destQty);
-    event ConverterNotAvailable(address _converter, address _provider, address _from, address _to, uint256 _srcQty);
-    event ConverterError(address _converter, address _from, address _to, uint256 _srcQty);
-    event ConverterAvailableError(address _converter, address _provider, address _from, address _to, uint256 _srcQty);
+    event ConverterEvaluated(TokenConverter _converter, Token _from, Token _to, uint256 _srcQty, uint256 _destQty);
+    event ConverterNotAvailable(TokenConverter _converter, AvailableProvider _provider, Token _from, Token _to, uint256 _srcQty);
+    event ConverterError(TokenConverter _converter, Token _from, Token _to, uint256 _srcQty);
+    event ConverterAvailableError(TokenConverter _converter, AvailableProvider _provider, Token _from, Token _to, uint256 _srcQty);
 
-    event WithdrawTokens(address _token, address _to, uint256 _amount);
+    event WithdrawTokens(Token _token, address _to, uint256 _amount);
     event WithdrawEth(address _to, uint256 _amount);
 
     /*
@@ -34,8 +34,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
      *  @param _worker Worker address.
      *  @return bool True if worker is valid, false otherwise.
      */
-    function _issetConverter(address _converter) internal view returns (bool) {
-        return converterToIndex[_converter] != 0;
+    function _issetConverter(TokenConverter _converter) internal view returns (bool) {
+        return converterToIndex[address(_converter)] != 0;
     }
 
     /*
@@ -46,7 +46,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     function getConverters() external view returns (address[] memory result) {
         result = new address[](converters.length - 1);
         for (uint256 i = 1; i < converters.length; i++) {
-            result[i - 1] = converters[i];
+            result[i - 1] = address(converters[i]);
         }
     }
 
@@ -60,7 +60,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     function addConverter(TokenConverter _converter) external onlyOwner returns (bool) {
         require(!_issetConverter(_converter), "The converter it already exist");
         uint256 index = converters.push(_converter) - 1;
-        converterToIndex[_converter] = index;
+        converterToIndex[address(_converter)] = index;
         emit AddedConverter(_converter);
         return true;
     }
@@ -71,14 +71,14 @@ contract TokenConverterRouter is TokenConverter, Ownable {
      *  @param _worker Converter address.
      *  @return bool true if existed, false otherwise.
      */
-    function removeConverter(address _converter) external onlyOwner returns (bool) {
+    function removeConverter(TokenConverter _converter) external onlyOwner returns (bool) {
         require(_issetConverter(_converter), "The converter is not exist.");
-        uint256 index = converterToIndex[_converter];
+        uint256 index = converterToIndex[address(_converter)];
         TokenConverter lastConverter = converters[converters.length - 1];
-        converterToIndex[lastConverter] = index;
+        converterToIndex[address(lastConverter)] = index;
         converters[index] = lastConverter;
         converters.length--;
-        delete converterToIndex[_converter];
+        delete converterToIndex[address(_converter)];
         emit RemovedConverter(_converter);
         return true;
     }
@@ -88,7 +88,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         AvailableProvider _provider
     ) external onlyOwner {
         emit SetAvailableProvider(_converter, _provider);
-        availability[_converter] = _provider;
+        availability[address(_converter)] = _provider;
     }
 
     function setExtraLimit(uint256 _extraLimit) external onlyOwner {
@@ -103,14 +103,14 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         uint256 _minReturn
     ) external payable returns (uint256) {
         TokenConverter converter = _getBestConverter(_from, _to, _amount);
-        require(converter != address(0), "No converter candidates");
+        require(converter != TokenConverter(0), "No converter candidates");
 
         if (_from == ETH_ADDRESS) {
             require(msg.value == _amount, "ETH not enought");
         } else {
             require(msg.value == 0, "ETH not required");
-            require(_from.transferFrom(msg.sender, this, _amount), "Error pulling Token amount");
-            require(_from.approve(converter, _amount), "Error approving token transfer");
+            require(_from.transferFrom(msg.sender, address(this), _amount), "Error pulling Token amount");
+            require(_from.approve(address(converter), _amount), "Error approving token transfer");
         }
 
         uint256 result = converter.convert.value(msg.value)(_from, _to, _amount, _minReturn);
@@ -125,7 +125,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         });
 
         if (_from != ETH_ADDRESS) {
-            require(_from.approve(converter, 0), "Error removing approve");
+            require(_from.approve(address(converter), 0), "Error removing approve");
         }
 
         if (_to == ETH_ADDRESS) {
@@ -169,13 +169,13 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         uint256 _amount
     ) internal view returns (TokenConverter best) {
         uint256 length = converters.length;
-        bytes32 bestReturn;
+        uint256 bestReturn;
 
         for (uint256 i = 0; i < length; i++) {
             TokenConverter converter = converters[i];
             if (_isAvailableView(converter, _from, _to, _amount)) {
-                (uint256 success, bytes32 newReturn) = _safeStaticCall(
-                    converter,
+                (uint256 success, uint256 newReturn) = _safeStaticCall(
+                    address(converter),
                     abi.encodeWithSelector(
                         converter.getReturn.selector,
                         _from,
@@ -198,13 +198,13 @@ contract TokenConverterRouter is TokenConverter, Ownable {
         uint256 _amount
     ) internal returns (TokenConverter best) {
         uint256 length = converters.length;
-        bytes32 bestReturn;
+        uint256 bestReturn;
 
         for (uint256 i = 0; i < length; i++) {
             TokenConverter converter = converters[i];
             if (_isAvailable(converter, _from, _to, _amount)) {
-                (uint256 success, bytes32 newReturn) = _safeCall(
-                    converter,
+                (uint256 success, uint256 newReturn) = _safeCall(
+                    address(converter),
                     abi.encodeWithSelector(
                         converter.getReturn.selector,
                         _from,
@@ -214,7 +214,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
                 );
 
                 if (success == 1) {
-                    emit ConverterEvaluated(converter, _from, _to, _amount, uint256(newReturn));
+                    emit ConverterEvaluated(converter, _from, _to, _amount, newReturn);
                     if (newReturn > bestReturn) {
                         bestReturn = newReturn;
                         best = converter;
@@ -227,15 +227,16 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function _isAvailable(
-        address _converter,
+        TokenConverter _converter,
         Token _from,
         Token _to,
         uint256 _amount
     ) internal returns (bool) {
-        AvailableProvider provider = availability[_converter];
-        if (provider == address(0)) return true;
-        (uint256 success,bytes32 available) = _safeCall(
-            provider, abi.encodeWithSelector(
+        AvailableProvider provider = availability[address(_converter)];
+        if (provider == AvailableProvider(0)) return true;
+        (uint256 success, uint256 available) = _safeCall(
+            address(provider),
+            abi.encodeWithSelector(
                 provider.isAvailable.selector,
                 _from,
                 _to,
@@ -248,7 +249,7 @@ contract TokenConverterRouter is TokenConverter, Ownable {
             return false;
         }
 
-        if (available != bytes32(1)) {
+        if (available != 1) {
             emit ConverterNotAvailable(_converter, provider, _from, _to, _amount);
             return false;
         }
@@ -257,26 +258,27 @@ contract TokenConverterRouter is TokenConverter, Ownable {
     }
 
     function _isAvailableView(
-        address _converter,
+        TokenConverter _converter,
         Token _from,
         Token _to,
         uint256 _amount
     ) internal view returns (bool) {
-        AvailableProvider provider = availability[_converter];
-        if (provider == address(0)) return true;
-        (uint256 success,bytes32 available) = _safeStaticCall(
-            provider, abi.encodeWithSelector(
+        AvailableProvider provider = availability[address(_converter)];
+        if (provider == AvailableProvider(0)) return true;
+        (uint256 success, uint256 available) = _safeStaticCall(
+            address(provider),
+            abi.encodeWithSelector(
                 provider.isAvailable.selector,
                 _from,
                 _to,
                 _amount
             )
         );
-        return success == 1 && available == bytes32(1);
+        return success == 1 && available == 1;
     }
 
     function withdrawEther(
-        address _to,
+        address payable _to,
         uint256 _amount
     ) external onlyOwner {
         emit WithdrawEth(_to, _amount);
@@ -294,8 +296,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
     function _safeStaticCall(
         address _contract,
-        bytes _data
-    ) internal view returns (uint256 success, bytes32 result) {
+        bytes memory _data
+    ) internal view returns (uint256 success, uint256 result) {
         assembly {
             let x := mload(0x40)
             success := staticcall(
@@ -313,8 +315,8 @@ contract TokenConverterRouter is TokenConverter, Ownable {
 
     function _safeCall(
         address _contract,
-        bytes _data
-    ) internal returns (uint256 success, bytes32 result) {
+        bytes memory _data
+    ) internal returns (uint256 success, uint256 result) {
         assembly {
             let x := mload(0x40)
             success := call(
