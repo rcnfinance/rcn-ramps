@@ -8,15 +8,15 @@ import "../../contracts/utils/SafeMath.sol";
 
 contract SafeMathMock {
     using SafeMath for uint256;
-    function add(uint256 a, uint256 b) external returns (uint256 c) {
+    function add(uint256 a, uint256 b) external pure returns (uint256 c) {
         c = a.add(b);
     }
 
-    function sub(uint256 a, uint256 b) external returns (uint256 c) {
+    function sub(uint256 a, uint256 b) external pure returns (uint256 c) {
         c = a.sub(b);
     }
 
-    function mult(uint256 a, uint256 b) external returns (uint256 c) {
+    function mult(uint256 a, uint256 b) external pure returns (uint256 c) {
         c = a.mult(b);
     }
 }
@@ -30,7 +30,7 @@ contract SafeMathTest {
     }
 
     function testCatchAddOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (uint256 success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.add.selector,
@@ -43,7 +43,7 @@ contract SafeMathTest {
     }
 
     function testCatchSubUnderflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (uint256 success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.sub.selector,
@@ -56,7 +56,7 @@ contract SafeMathTest {
     }
 
     function testCatchMultOverflow() external {
-        (uint256 success, bytes32 result) = _safeCall(
+        (uint256 success,) = _safeCall(
             address(safeMath),
             abi.encodeWithSelector(
                 safeMath.mult.selector,
