@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 import "./interfaces/TokenConverter.sol";
 import "./rcn/interfaces/Engine.sol";
