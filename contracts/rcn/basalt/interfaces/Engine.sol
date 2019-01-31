@@ -1,12 +1,13 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
-import "../../interfaces/Oracle.sol";
-import "../../interfaces/Token.sol";
-import "./CosignerBasalt.sol";
+import "../../../interfaces/Oracle.sol";
+import "../../../interfaces/Cosigner.sol";
+
 
 contract Engine {
     uint256 public VERSION;
     string public VERSION_NAME;
+    Token public rcn;
 
     enum Status { initial, lent, paid, destroyed }
     struct Approbation {
@@ -33,10 +34,10 @@ contract Engine {
     function approveLoan(uint index) public returns (bool);
     function transfer(address to, uint256 index) public returns (bool);
     function takeOwnership(uint256 index) public returns (bool);
-    function withdrawal(uint index, address to, uint256 amount) public returns (bool);
 
-    function pay(uint index, uint256 _amount, address _from, bytes oracleData) public returns (bool);
-    function rcn() public view returns (Token);
-    function convertRate(Oracle oracle, bytes32 currency, bytes data, uint256 amount) public view returns (uint256);
-    function lend(uint index, bytes oracleData, CosignerBasalt cosigner, bytes cosignerData) public returns (bool);
+    function withdrawal(uint index, address to, uint256 amount) public returns (bool);
+    function lend(uint index, bytes memory oracleData, Cosigner cosigner, bytes memory cosignerData) public returns (bool);
+    function pay(uint index, uint256 _amount, address _from, bytes memory oracleData) public returns (bool);
+
+    function convertRate(Oracle oracle, bytes32 currency, bytes memory data, uint256 amount) public returns (uint256);
 }
